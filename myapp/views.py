@@ -1,6 +1,8 @@
 import datetime
 import json
 import os
+import pickle
+import tempfile
 from difflib import SequenceMatcher
 
 from django.conf import settings
@@ -14,7 +16,7 @@ from django.views.decorators.http import require_POST
 
 # Create your views here.
 from myapp.models import Registration, Complaints, Audio, LockedApp, LockedDocument
-from myapp.train import train_user_model
+from myapp.train import train_user_model, extract_features
 
 
 def adminhome_get(request):
@@ -46,18 +48,21 @@ def sentrep_post(request):
 
 
 def login_post(request):
-    username=request.POST['username']
-    password=request.POST['password']
+    username = request.POST.get('username', '').strip()
+    password = request.POST.get('password', '').strip()
     if not username or not password:
-        messages.warning(request,'Username and Password is requested!')
-    check=authenticate(request, username=username, password=password)
+        messages.warning(request, 'Please enter both username and password.')
+        return redirect('/myapp/login_get/')
+    check = authenticate(request, username=username, password=password)
     if check is not None:
-        login(request,check)
-        if check.groups.filter(name='admin').exists():
+        if check.is_staff or check.is_superuser or check.groups.filter(name='admin').exists():
+            login(request, check)
             return redirect('/myapp/adminhome_get/')
         else:
-            return redirect('/myapp/clienthome_get/')
+            messages.warning(request, 'Access denied. This portal is for administrators only. Use the client login instead.')
+            return redirect('/myapp/login_get/')
     else:
+        messages.warning(request, 'Invalid username or password. Please try again.')
         return redirect('/myapp/login_get/')
 
 def adminchgpass_get(request):
@@ -83,8 +88,11 @@ def adminchgpass_post(request):
         return redirect('/myapp/adminchgpass_get/')
 
 def logout_get(request):
+    is_admin = request.user.is_staff or request.user.is_superuser
     logout(request)
-    return redirect('/myapp/login_get/')
+    if is_admin:
+        return redirect('/myapp/login_get/')
+    return redirect('/myapp/client_voice_login_get/')
 
 
 # â”€â”€â”€ Client Views â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -118,8 +126,8 @@ def client_register_post(request):
         REGISTRATION=reg
     )
     login(request, user)
-    messages.success(request, 'Registration successful! Please upload a voice file to continue.')
-    return redirect('/myapp/uploadvoice_get/')
+    messages.success(request, 'Account created! Now record 3 short voice phrases to set up your voice model.')
+    return redirect('/myapp/speakvoice_get/')
 
 
 def client_voice_login_get(request):
@@ -164,9 +172,41 @@ def client_voice_login_post(request):
         )
         return redirect('/myapp/client_voice_login_get/')
 
-    # â”€â”€ Passed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── MFCC / IsolationForest speaker verification ──────────────────────────
+    voice_audio = request.FILES.get('voice_audio')
+    if voice_audio:
+        user_dir = os.path.join(settings.MEDIA_ROOT, 'voice_uploads', f'user_{user.id}')
+        model_path = os.path.join(user_dir, 'model.pkl')
+        if os.path.exists(model_path):
+            suffix = '.webm' if 'webm' in (voice_audio.content_type or '') else '.wav'
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+            try:
+                with os.fdopen(tmp_fd, 'wb') as tmp_f:
+                    for chunk in voice_audio.chunks():
+                        tmp_f.write(chunk)
+                feats = extract_features(tmp_path)
+                if feats is not None:
+                    with open(model_path, 'rb') as mf:
+                        model = pickle.load(mf)
+                    pred = model.predict([feats])[0]  # +1 inlier, -1 outlier
+                    if pred == -1:
+                        messages.warning(
+                            request,
+                            'Voice not recognized — your voice does not match the trained profile. '
+                            'Please try again or contact support.'
+                        )
+                        return redirect('/myapp/client_voice_login_get/')
+            except Exception:
+                pass  # Best-effort: don't block login on MFCC errors
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
+
     login(request, user)
     return redirect('/myapp/clienthome_get/')
+
 
 
 def clienthome_get(request):
@@ -208,14 +248,33 @@ def client_complaint_post(request):
         messages.warning(request, 'Please enter a complaint.')
         return redirect('/myapp/client_complaint_get/')
     reg = Registration.objects.get(USER=request.user)
+
+    # ── Spam protection: max 3 complaints per 24 hours ───────────────────────
+    cutoff = datetime.datetime.now() - datetime.timedelta(hours=24)
+    recent_count = Complaints.objects.filter(
+        REGISTRATION=reg,
+        date__gte=cutoff.date()
+    ).count()
+    if recent_count >= 3:
+        messages.warning(
+            request,
+            'You have reached the limit of 3 complaints per 24 hours. Please try again later.'
+        )
+        return redirect('/myapp/client_complaint_get/')
+
+    # ── Auto-increment per-user complaint ID ─────────────────────────────────
+    last = Complaints.objects.filter(REGISTRATION=reg).order_by('-user_complaint_id').first()
+    next_id = (last.user_complaint_id + 1) if last else 1
+
     Complaints.objects.create(
         date=datetime.date.today(),
         complaint=complaint,
         reply='',
         status='Pending',
+        user_complaint_id=next_id,
         REGISTRATION=reg
     )
-    messages.success(request, 'Your complaint has been submitted!')
+    messages.success(request, f'Complaint #{next_id} submitted successfully!')
     return redirect('/myapp/client_view_complaints_get/')
 
 
@@ -242,11 +301,17 @@ def uploadvoice_get(request):
         upload_count = 0
     user_dir = os.path.join(settings.MEDIA_ROOT, 'voice_uploads', f'user_{request.user.id}')
     model_trained = os.path.exists(os.path.join(user_dir, 'model.pkl'))
+    reg_obj = None
+    try:
+        reg_obj = Registration.objects.get(USER=request.user)
+    except Registration.DoesNotExist:
+        pass
     return render(request, 'voiceupload.html', {
         'uploads': uploads,
         'upload_count': upload_count,
         'model_trained': model_trained,
         'min_files': 3,
+        'reg': reg_obj,
     })
 
 
@@ -360,7 +425,97 @@ def uploadvoice_delete(request, audio_id):
     return redirect('/myapp/uploadvoice_get/')
 
 
-# â”€â”€â”€ Predefined app catalogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── In-browser voice enrollment (speak phrases) ────────────────────────────
+
+ENROLLMENT_PHRASES = [
+    "My voice is my password and it is unique to me",
+    "VoiceVault keeps my private data safe and secure",
+    "I am the only authorized user of this account",
+]
+
+
+def speakvoice_get(request):
+    if not request.user.is_authenticated:
+        return redirect('/myapp/client_voice_login_get/')
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect('/myapp/adminhome_get/')
+    try:
+        reg = Registration.objects.get(USER=request.user)
+        upload_count = Audio.objects.filter(REGISTRATION=reg).exclude(audio_file='').count()
+    except Registration.DoesNotExist:
+        reg = None
+        upload_count = 0
+    user_dir = os.path.join(settings.MEDIA_ROOT, 'voice_uploads', f'user_{request.user.id}')
+    model_trained = os.path.exists(os.path.join(user_dir, 'model.pkl'))
+    return render(request, 'speakvoice.html', {
+        'reg': reg,
+        'upload_count': upload_count,
+        'model_trained': model_trained,
+        'phrases': ENROLLMENT_PHRASES,
+        'phrases_json': json.dumps(ENROLLMENT_PHRASES),
+        'total_phrases': len(ENROLLMENT_PHRASES),
+    })
+
+
+def speakvoice_record_post(request):
+    """AJAX: receive a single spoken-phrase recording blob, save it, optionally train."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    if request.user.is_staff or request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Admin accounts cannot enrol'})
+
+    audio_file = request.FILES.get('audio')
+    phrase_index = request.POST.get('phrase_index', '0')
+
+    if not audio_file:
+        return JsonResponse({'success': False, 'error': 'No audio received'})
+
+    try:
+        reg = Registration.objects.get(USER=request.user)
+    except Registration.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Profile not found'})
+
+    user_dir = os.path.join(settings.MEDIA_ROOT, 'voice_uploads', f'user_{request.user.id}')
+    os.makedirs(user_dir, exist_ok=True)
+
+    ext = '.webm' if 'webm' in (audio_file.content_type or '') else '.wav'
+    safe_name = f'spoken_phrase_{phrase_index}_{datetime.date.today().strftime("%Y%m%d")}{ext}'
+    file_path = os.path.join(user_dir, safe_name)
+
+    with open(file_path, 'wb+') as f:
+        for chunk in audio_file.chunks():
+            f.write(chunk)
+
+    relative_path = f'voice_uploads/user_{request.user.id}/{safe_name}'
+    Audio.objects.update_or_create(
+        REGISTRATION=reg,
+        filename=safe_name,
+        defaults={
+            'date': datetime.date.today(),
+            'audio': '',
+            'audio_file': relative_path,
+            'filesize': audio_file.size,
+        }
+    )
+
+    total = Audio.objects.filter(REGISTRATION=reg).exclude(audio_file='').count()
+    trained = False
+    if total >= 3:
+        try:
+            train_user_model(request.user.id, user_dir)
+            trained = True
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'success': True,
+        'upload_count': total,
+        'trained': trained,
+        'redirect': '/myapp/client_voice_login_get/' if trained else None,
+    })
+
+
+# ─── Predefined app catalogue ─────────────────────────────────────────────────
 
 DEFAULT_APPS = [
     {'key': 'whatsapp',   'name': 'WhatsApp',   'icon': 'ðŸ’¬'},

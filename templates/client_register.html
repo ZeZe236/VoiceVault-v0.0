@@ -3,6 +3,7 @@
 
 <head>
     <title>VoiceVault - Client Registration</title>
+    <link rel="icon" href="data:,">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * {
@@ -394,6 +395,71 @@
             border-color: rgba(74, 222, 128, 0.4);
             color: #86efac;
         }
+
+        /* Phone field */
+        .phone-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .phone-wrapper:focus-within {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .dial-badge {
+            padding: 13px 10px 13px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(200, 180, 255, 0.9);
+            white-space: nowrap;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            user-select: none;
+        }
+
+        .phone-wrapper input {
+            flex: 1;
+            border: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 13px 14px !important;
+        }
+
+        .phone-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 4px;
+            padding-left: 4px;
+            transition: color 0.2s;
+        }
+
+        .phone-hint.valid {
+            color: #86efac;
+        }
+
+        .phone-hint.invalid {
+            color: #fca5a5;
+        }
+
+        /* Email validation indicator */
+        .field-feedback {
+            font-size: 11px;
+            margin-top: 4px;
+            padding-left: 4px;
+            display: none;
+        }
+
+        .field-feedback.invalid {
+            display: block;
+            color: #fca5a5;
+        }
     </style>
 </head>
 
@@ -430,11 +496,19 @@
                 </div>
                 <div class="form-group full">
                     <label>Email Address</label>
-                    <input type="email" name="email" placeholder="your@email.com" required>
+                    <input type="email" name="email" id="emailInput" placeholder="your@email.com" required
+                        oninput="validateEmail()">
+                    <div class="field-feedback" id="emailFeedback">Please enter a valid email address</div>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="text" name="phno" placeholder="+1 234 567 8900" required>
+                    <div class="phone-wrapper">
+                        <span class="dial-badge" id="dialBadge">+?</span>
+                        <input type="text" id="phoneDigits" placeholder="Select country first" maxlength="15"
+                            oninput="onPhoneInput()" required>
+                    </div>
+                    <div class="phone-hint" id="phoneHint">Please select your country first</div>
+                    <input type="hidden" name="phno" id="phnoHidden">
                 </div>
                 <div class="form-group">
                     <label>Gender</label>
@@ -451,7 +525,72 @@
                 </div>
                 <div class="form-group">
                     <label>Country</label>
-                    <input type="text" name="country" placeholder="Your country" required>
+                    <select name="country" id="countrySelect" required onchange="onCountryChange()">
+                        <option value="" disabled selected>Select your country</option>
+                        <option value="Afghanistan" data-code="+93" data-digits="9">Afghanistan (+93)</option>
+                        <option value="Argentina" data-code="+54" data-digits="10">Argentina (+54)</option>
+                        <option value="Australia" data-code="+61" data-digits="9">Australia (+61)</option>
+                        <option value="Bangladesh" data-code="+880" data-digits="10">Bangladesh (+880)</option>
+                        <option value="Belgium" data-code="+32" data-digits="9">Belgium (+32)</option>
+                        <option value="Brazil" data-code="+55" data-digits="11">Brazil (+55)</option>
+                        <option value="Canada" data-code="+1" data-digits="10">Canada (+1)</option>
+                        <option value="Chile" data-code="+56" data-digits="9">Chile (+56)</option>
+                        <option value="China" data-code="+86" data-digits="11">China (+86)</option>
+                        <option value="Colombia" data-code="+57" data-digits="10">Colombia (+57)</option>
+                        <option value="Egypt" data-code="+20" data-digits="10">Egypt (+20)</option>
+                        <option value="Ethiopia" data-code="+251" data-digits="9">Ethiopia (+251)</option>
+                        <option value="France" data-code="+33" data-digits="9">France (+33)</option>
+                        <option value="Germany" data-code="+49" data-digits="10">Germany (+49)</option>
+                        <option value="Ghana" data-code="+233" data-digits="9">Ghana (+233)</option>
+                        <option value="Greece" data-code="+30" data-digits="10">Greece (+30)</option>
+                        <option value="India" data-code="+91" data-digits="10">India (+91)</option>
+                        <option value="Indonesia" data-code="+62" data-digits="9">Indonesia (+62)</option>
+                        <option value="Iran" data-code="+98" data-digits="10">Iran (+98)</option>
+                        <option value="Iraq" data-code="+964" data-digits="10">Iraq (+964)</option>
+                        <option value="Ireland" data-code="+353" data-digits="9">Ireland (+353)</option>
+                        <option value="Israel" data-code="+972" data-digits="9">Israel (+972)</option>
+                        <option value="Italy" data-code="+39" data-digits="10">Italy (+39)</option>
+                        <option value="Japan" data-code="+81" data-digits="10">Japan (+81)</option>
+                        <option value="Jordan" data-code="+962" data-digits="9">Jordan (+962)</option>
+                        <option value="Kenya" data-code="+254" data-digits="9">Kenya (+254)</option>
+                        <option value="Kuwait" data-code="+965" data-digits="8">Kuwait (+965)</option>
+                        <option value="Malaysia" data-code="+60" data-digits="9">Malaysia (+60)</option>
+                        <option value="Mexico" data-code="+52" data-digits="10">Mexico (+52)</option>
+                        <option value="Morocco" data-code="+212" data-digits="9">Morocco (+212)</option>
+                        <option value="Myanmar" data-code="+95" data-digits="9">Myanmar (+95)</option>
+                        <option value="Nepal" data-code="+977" data-digits="10">Nepal (+977)</option>
+                        <option value="Netherlands" data-code="+31" data-digits="9">Netherlands (+31)</option>
+                        <option value="New Zealand" data-code="+64" data-digits="9">New Zealand (+64)</option>
+                        <option value="Nigeria" data-code="+234" data-digits="10">Nigeria (+234)</option>
+                        <option value="Norway" data-code="+47" data-digits="8">Norway (+47)</option>
+                        <option value="Pakistan" data-code="+92" data-digits="10">Pakistan (+92)</option>
+                        <option value="Peru" data-code="+51" data-digits="9">Peru (+51)</option>
+                        <option value="Philippines" data-code="+63" data-digits="10">Philippines (+63)</option>
+                        <option value="Poland" data-code="+48" data-digits="9">Poland (+48)</option>
+                        <option value="Portugal" data-code="+351" data-digits="9">Portugal (+351)</option>
+                        <option value="Qatar" data-code="+974" data-digits="8">Qatar (+974)</option>
+                        <option value="Romania" data-code="+40" data-digits="9">Romania (+40)</option>
+                        <option value="Russia" data-code="+7" data-digits="10">Russia (+7)</option>
+                        <option value="Saudi Arabia" data-code="+966" data-digits="9">Saudi Arabia (+966)</option>
+                        <option value="Singapore" data-code="+65" data-digits="8">Singapore (+65)</option>
+                        <option value="South Africa" data-code="+27" data-digits="9">South Africa (+27)</option>
+                        <option value="South Korea" data-code="+82" data-digits="10">South Korea (+82)</option>
+                        <option value="Spain" data-code="+34" data-digits="9">Spain (+34)</option>
+                        <option value="Sri Lanka" data-code="+94" data-digits="9">Sri Lanka (+94)</option>
+                        <option value="Sweden" data-code="+46" data-digits="9">Sweden (+46)</option>
+                        <option value="Switzerland" data-code="+41" data-digits="9">Switzerland (+41)</option>
+                        <option value="Taiwan" data-code="+886" data-digits="9">Taiwan (+886)</option>
+                        <option value="Tanzania" data-code="+255" data-digits="9">Tanzania (+255)</option>
+                        <option value="Thailand" data-code="+66" data-digits="9">Thailand (+66)</option>
+                        <option value="Turkey" data-code="+90" data-digits="10">Turkey (+90)</option>
+                        <option value="UAE" data-code="+971" data-digits="9">UAE (+971)</option>
+                        <option value="Uganda" data-code="+256" data-digits="9">Uganda (+256)</option>
+                        <option value="Ukraine" data-code="+380" data-digits="9">Ukraine (+380)</option>
+                        <option value="United Kingdom" data-code="+44" data-digits="10">United Kingdom (+44)</option>
+                        <option value="United States" data-code="+1" data-digits="10">United States (+1)</option>
+                        <option value="Venezuela" data-code="+58" data-digits="10">Venezuela (+58)</option>
+                        <option value="Vietnam" data-code="+84" data-digits="9">Vietnam (+84)</option>
+                    </select>
                 </div>
 
                 <!-- Voice Phrase Section -->
@@ -495,6 +634,92 @@
         let recognition = null;
         let isRecording = false;
 
+        /* ── Country & Phone ──────────────────────────── */
+        let selectedDialCode = '';
+        let requiredDigits = 0;
+
+        function onCountryChange() {
+            const sel = document.getElementById('countrySelect');
+            const opt = sel.options[sel.selectedIndex];
+            selectedDialCode = opt.dataset.code || '';
+            requiredDigits = parseInt(opt.dataset.digits) || 0;
+            document.getElementById('dialBadge').textContent = selectedDialCode || '+?';
+            const digitsInput = document.getElementById('phoneDigits');
+            digitsInput.placeholder = '0'.repeat(requiredDigits);
+            digitsInput.disabled = false;
+            document.getElementById('phoneHint').textContent =
+                `Enter exactly ${requiredDigits} digits after ${selectedDialCode}`;
+            document.getElementById('phoneHint').className = 'phone-hint';
+            onPhoneInput();
+        }
+
+        function onPhoneInput() {
+            const raw = document.getElementById('phoneDigits').value.replace(/\D/g, '');
+            document.getElementById('phoneDigits').value = raw; // strip non-digits
+            const hint = document.getElementById('phoneHint');
+            if (!selectedDialCode) {
+                hint.textContent = 'Please select your country first';
+                hint.className = 'phone-hint';
+                return;
+            }
+            if (raw.length === 0) {
+                hint.textContent = `Enter exactly ${requiredDigits} digits after ${selectedDialCode}`;
+                hint.className = 'phone-hint';
+            } else if (raw.length < requiredDigits) {
+                hint.textContent = `${raw.length}/${requiredDigits} digits entered`;
+                hint.className = 'phone-hint invalid';
+            } else if (raw.length === requiredDigits) {
+                hint.textContent = `✓ Valid (${selectedDialCode} ${raw})`;
+                hint.className = 'phone-hint valid';
+            } else {
+                hint.textContent = `Too many digits — expected ${requiredDigits}, got ${raw.length}`;
+                hint.className = 'phone-hint invalid';
+            }
+        }
+
+        /* ── Email validation ─────────────────────────── */
+        function validateEmail() {
+            const val = document.getElementById('emailInput').value;
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            const fb = document.getElementById('emailFeedback');
+            if (val && !re.test(val)) {
+                fb.className = 'field-feedback invalid';
+            } else {
+                fb.className = 'field-feedback';
+            }
+        }
+
+        /* ── Form submit ──────────────────────────────── */
+        document.getElementById('registerForm').addEventListener('submit', function (e) {
+            // Validate email
+            const emailVal = document.getElementById('emailInput').value;
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            if (!emailRe.test(emailVal)) {
+                e.preventDefault();
+                document.getElementById('emailFeedback').className = 'field-feedback invalid';
+                document.getElementById('emailInput').focus();
+                return;
+            }
+            // Validate phone
+            const raw = document.getElementById('phoneDigits').value.replace(/\D/g, '');
+            if (!selectedDialCode) {
+                e.preventDefault();
+                alert('Please select a country before submitting.');
+                return;
+            }
+            if (raw.length !== requiredDigits) {
+                e.preventDefault();
+                const hint = document.getElementById('phoneHint');
+                hint.textContent = `Phone must be exactly ${requiredDigits} digits for ${selectedDialCode}`;
+                hint.className = 'phone-hint invalid';
+                document.getElementById('phoneDigits').focus();
+                return;
+            }
+            // Combine into hidden phno field
+            document.getElementById('phnoHidden').value = selectedDialCode + raw;
+        });
+
+        /* ── Voice recording ──────────────────────────── */
         function initRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -557,9 +782,6 @@
             document.getElementById('statusDot').classList.remove('recording');
             document.getElementById('waveform').classList.remove('active');
         }
-
-        // Voice phrase is optional – voice authentication now happens via uploaded audio files.
-        // Users proceed to the upload page after registration.
     </script>
 </body>
 

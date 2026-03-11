@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - Voice Enrolment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --secondary: #06b6d4;
+            --accent: #0ea5e9;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(100, 180, 255, 0.15);
+        }
+
+        body {
+            min-height: 100vh;
+            background: #06111e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 12% 60%, rgba(20, 70, 200, 0.7), transparent 50%),
+                radial-gradient(circle at 70% 35%, rgba(60, 20, 160, 0.55), transparent 50%),
+                radial-gradient(circle at 88% 75%, rgba(0, 190, 215, 0.35), transparent 40%),
+                linear-gradient(160deg, rgba(4, 10, 30, 0.5), rgba(8, 4, 20, 0.3));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(0, 180, 255, 0.012) 10px, rgba(0, 180, 255, 0.012) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background: rgba(255, 255, 255, .05);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 24px 30px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .nav-section {
+            padding: 20px 16px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, .35);
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255, 255, 255, .65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all .2s;
+            position: relative;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: #fff;
+            background: rgba(59, 130, 246, .15);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .user-card-chevron {
+            margin-left: auto;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .4);
+            transition: transform .2s;
+        }
+
+        .user-card-chevron.up {
+            transform: rotate(180deg);
+        }
+
+        .user-popup {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: rgba(10, 20, 50, .95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 180, 255, .2);
+            border-radius: 14px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 200;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, .4);
+        }
+
+        .user-popup.open {
+            display: flex;
+        }
+
+        .user-popup-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .85);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .user-popup-item:hover {
+            background: rgba(59, 130, 246, .18);
+            color: #fff;
+        }
+
+        .user-popup-item i {
+            width: 18px;
+            text-align: center;
+            color: #06b6d4;
+        }
+
+        /* ── Main ── */
+        .main {
+            margin-left: 240px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Enrolment card ── */
+        .enrol-card {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        .enrol-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .enrol-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .enrol-header p {
+            color: rgba(255, 255, 255, .55);
+            font-size: 14px;
+        }
+
+        /* ── Step progress ── */
+        .step-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 40px;
+        }
+
+        .step-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all .3s;
+            background: rgba(255, 255, 255, .08);
+            border: 2px solid rgba(255, 255, 255, .18);
+            color: rgba(255, 255, 255, .4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-dot.done {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border-color: #4ade80;
+            color: #fff;
+        }
+
+        .step-dot.active {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-color: #60a5fa;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(59, 130, 246, .5);
+        }
+
+        .step-line {
+            flex: 1;
+            max-width: 80px;
+            height: 2px;
+            background: rgba(255, 255, 255, .12);
+            transition: background .5s;
+        }
+
+        .step-line.done {
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+        }
+
+        /* ── Phrase box ── */
+        .phrase-area {
+            background: rgba(255, 255, 255, .05);
+            border: 1.5px solid rgba(100, 180, 255, .2);
+            border-radius: 20px;
+            padding: 36px 40px;
+            text-align: center;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .phrase-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #06b6d4;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .phrase-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.5;
+            letter-spacing: .3px;
+            min-height: 66px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phrase-hint {
+            margin-top: 12px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .35);
+        }
+
+        /* ── Orb ── */
+        .orb-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .voice-orb {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .45), rgba(6, 182, 212, .45));
+            border: 3px solid rgba(255, 255, 255, .22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all .3s;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, .3);
+            user-select: none;
+        }
+
+        .voice-orb::before,
+        .voice-orb::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, .3);
+        }
+
+        .voice-orb::before {
+            width: 116px;
+            height: 116px;
+        }
+
+        .voice-orb::after {
+            width: 140px;
+            height: 140px;
+            border-color: rgba(6, 182, 212, .2);
+        }
+
+        .voice-orb.listening {
+            background: linear-gradient(135deg, rgba(239, 68, 68, .65), rgba(220, 38, 38, .65));
+            border-color: rgba(248, 113, 113, .5);
+            box-shadow: 0 0 30px rgba(239, 68, 68, .5);
+            animation: orbPulse 1.2s ease-in-out infinite;
+        }
+
+        .voice-orb.listening::before {
+            animation: ripple 1.5s ease-out infinite;
+        }
+
+        .voice-orb.listening::after {
+            animation: ripple 1.5s ease-out .5s infinite;
+        }
+
+        .voice-orb.done {
+            background: linear-gradient(135deg, rgba(74, 222, 128, .55), rgba(34, 197, 94, .55));
+            border-color: rgba(74, 222, 128, .5);
+            box-shadow: 0 0 24px rgba(74, 222, 128, .4);
+        }
+
+        @keyframes orbPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.06);
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: .6;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* ── Waveform ── */
+        .waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 28px;
+        }
+
+        .waveform span {
+            display: inline-block;
+            width: 4px;
+            height: 5px;
+            background: rgba(96, 165, 250, .7);
+            border-radius: 3px;
+        }
+
+        .waveform.active span {
+            animation: wave .7s ease-in-out infinite;
+        }
+
+        .waveform.active span:nth-child(2) {
+            animation-delay: .1s;
+        }
+
+        .waveform.active span:nth-child(3) {
+            animation-delay: .2s;
+        }
+
+        .waveform.active span:nth-child(4) {
+            animation-delay: .3s;
+        }
+
+        .waveform.active span:nth-child(5) {
+            animation-delay: .2s;
+        }
+
+        .waveform.active span:nth-child(6) {
+            animation-delay: .1s;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                height: 5px;
+            }
+
+            50% {
+                height: 24px;
+            }
+        }
+
+        .orb-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .6);
+            text-align: center;
+        }
+
+        /* ── Transcript box ── */
+        .transcript-box {
+            background: rgba(0, 0, 0, .2);
+            border: 1px dashed rgba(255, 255, 255, .15);
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, .7);
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+            text-align: center;
+            line-height: 1.4;
+            margin-bottom: 24px;
+        }
+
+        /* ── Buttons ── */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-record {
+            padding: 13px 32px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, .4);
+            transition: transform .2s, box-shadow .2s;
+        }
+
+        .btn-record:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(59, 130, 246, .6);
+        }
+
+        .btn-record:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-stop {
+            padding: 13px 32px;
+            background: linear-gradient(135deg, rgba(239, 68, 68, .7), rgba(220, 38, 38, .7));
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, .35);
+            transition: transform .2s;
+        }
+
+        .btn-stop.visible {
+            display: inline-flex;
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ── Tick list ── */
+        .recording-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 28px;
+        }
+
+        .rec-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .rec-item.saved {
+            background: rgba(74, 222, 128, .09);
+            border-color: rgba(74, 222, 128, .3);
+            color: #86efac;
+        }
+
+        .rec-item .ri-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ── Success overlay ── */
+        .success-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 16px;
+            padding: 48px 24px;
+        }
+
+        .success-overlay.show {
+            display: flex;
+        }
+
+        .success-icon {
+            font-size: 72px;
+            animation: popIn .4s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(.6);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-overlay h2 {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .success-overlay p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, .6);
+        }
+
+        .btn-goto-login {
+            padding: 14px 36px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, .45);
+            margin-top: 8px;
+            transition: transform .2s;
+        }
+
+        .btn-goto-login:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ── Alert ── */
+        .alert {
+            padding: 11px 18px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background: rgba(74, 222, 128, .12);
+            border: 1px solid rgba(74, 222, 128, .35);
+            color: #86efac;
+        }
+
+        .alert-info {
+            background: rgba(96, 165, 250, .1);
+            border: 1px solid rgba(96, 165, 250, .3);
+            color: #93c5fd;
+        }
+
+        /* ── Timer ── */
+        .timer-ring {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: rgba(248, 113, 113, .8);
+            display: none;
+        }
+
+        .timer-ring.visible {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 20px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+            </div>
+            <div>
+                <div class="brand-text">VoiceVault</div>
+                <div class="brand-sub">Client Portal</div>
+            </div>
+        </div>
+        <span class="nav-section">Menu</span>
+        <a href="/myapp/clienthome_get/" class="nav-item"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="/myapp/applock_get/" class="nav-item"><i class="fa fa-lock"></i> App Lock</a>
+        <a href="/myapp/doclock_get/" class="nav-item"><i class="fa fa-file-shield"></i> Doc Lock</a>
+        <a href="/myapp/speakvoice_get/" class="nav-item active"><i class="fa fa-microphone"></i> Voice Enrol</a>
+        <a href="/myapp/uploadvoice_get/" class="nav-item"><i class="fa fa-upload"></i> Voice Files</a>
+        <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
+        <a href="/myapp/client_view_complaints_get/" class="nav-item"><i class="fa fa-list"></i> My Complaints</a>
+        <div class="sidebar-footer">
+            <div class="user-card" onclick="toggleUserPopup()" id="userCardTrigger">
+                {% if reg %}
+                <div class="user-avatar">{{ reg.name|first|upper }}</div>
+                <div>
+                    <div class="user-name">{{ reg.name }}</div>
+                    <div class="user-role">Client</div>
+                </div>
+                {% else %}
+                <div class="user-avatar">?</div>
+                <div>
+                    <div class="user-name">Setting Up</div>
+                    <div class="user-role">New User</div>
+                </div>
+                {% endif %}
+                <i class="fa fa-chevron-up user-card-chevron" id="userChevron"></i>
+                <div class="user-popup" id="userPopup">
+                    <a href="/myapp/clienthome_get/" class="user-popup-item">
+                        <i class="fa fa-user-circle"></i> Account</a>
+                    <a href="/myapp/logout_get/" class="user-popup-item" style="color:#fca5a5">
+                        <i class="fa fa-sign-out-alt" style="color:#f87171"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="enrol-card">
+
+            {% for message in messages %}
+            <div class="alert alert-info">&#9432; {{ message }}</div>
+            {% endfor %}
+
+            <!-- Success state (shown after all phrases recorded and model trained) -->
+            <div class="enrol-card success-overlay" id="successOverlay">
+                <div class="success-icon">&#9989;</div>
+                <h2>Voice Model Ready!</h2>
+                <p>All {{ total_phrases }} phrases recorded and your voice profile has been trained.<br>
+                    You can now log in using your voice.</p>
+                <a href="/myapp/client_voice_login_get/" class="btn-goto-login">
+                    <i class="fa fa-arrow-right"></i> Go to Login
+                </a>
+            </div>
+
+            <!-- Enrolment flow -->
+            <div id="enrolFlow">
+                <div class="enrol-header">
+                    <h1>Voice Enrolment</h1>
+                    <p>Speak each phrase clearly. We'll use these recordings to build your voice profile.</p>
+                </div>
+
+                <!-- Step progress -->
+                <div class="step-bar" id="stepBar">
+                    {% for phrase in phrases %}
+                    <div class="step-dot {% if forloop.first %}active{% endif %}" id="step{{ forloop.counter0 }}">
+                        {{ forloop.counter }}
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="step-line" id="line{{ forloop.counter0 }}"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Phrase display -->
+                <div class="phrase-area">
+                    <div class="phrase-label" id="phraseLabel">Phrase 1 of {{ total_phrases }}</div>
+                    <div class="phrase-text" id="phraseText">{{ phrases.0 }}</div>
+                    <div class="phrase-hint">Speak naturally — don't rush</div>
+                    <span class="timer-ring" id="timerRing">●</span>
+                </div>
+
+                <!-- Orb & waveform -->
+                <div class="orb-area">
+                    <div class="voice-orb" id="voiceOrb" onclick="handleOrbClick()" title="Click to record">
+                        <i class="fa fa-microphone"></i>
+                    </div>
+                    <div class="waveform" id="waveform">
+                        <span></span><span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="orb-label" id="orbLabel">Click the microphone to start recording</div>
+                </div>
+
+                <!-- Transcript -->
+                <div class="transcript-box" id="transcriptBox">
+                    Your spoken words will appear here&hellip;
+                </div>
+
+                <!-- Buttons -->
+                <div class="btn-row">
+                    <button class="btn-record" id="btnRecord" onclick="startRecording()">
+                        <i class="fa fa-microphone"></i> Start Recording
+                    </button>
+                    <button class="btn-stop visible" id="btnStop" onclick="stopRecording()" style="display:none;">
+                        <i class="fa fa-stop-circle"></i> Stop &amp; Save
+                    </button>
+                </div>
+
+                <!-- Recording checklist -->
+                <div class="recording-list" id="recordingList">
+                    {% for phrase in phrases %}
+                    <div class="rec-item" id="recItem{{ forloop.counter0 }}">
+                        <span class="ri-icon">&#9675;</span>
+                        <span>Phrase {{ forloop.counter }}: <em>{{ phrase }}</em></span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div><!-- /enrolFlow -->
+
+        </div><!-- /enrol-card -->
+    </main>
+
+    <script>
+        const PHRASES = {{ phrases_json| safe }};
+        const CSRF = "{{ csrf_token }}";
+        const TOTAL = {{ total_phrases }};
+
+        let currentIndex = 0;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognition = null;
+        let isRecording = false;
+        let liveTranscript = '';
+
+        // Start SpeechRecognition for live transcript display (optional)
+        function initSR() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) return null;
+            const r = new SR();
+            r.lang = 'en-US';
+            r.interimResults = true;
+            r.continuous = true;
+            r.onresult = function (e) {
+                let t = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    t += e.results[i][0].transcript;
+                }
+                liveTranscript = t;
+                document.getElementById('transcriptBox').textContent = t || 'Listening…';
+            };
+            r.onerror = () => { };
+            r.onend = () => { };
+            return r;
+        }
+
+        function handleOrbClick() {
+            if (isRecording) stopRecording(); else startRecording();
+        }
+
+        async function startRecording() {
+            if (isRecording) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                liveTranscript = '';
+                const opts = MediaRecorder.isTypeSupported('audio/webm')
+                    ? { mimeType: 'audio/webm' } : {};
+                mediaRecorder = new MediaRecorder(stream, opts);
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                mediaRecorder.onstop = () => stream.getTracks().forEach(t => t.stop());
+                mediaRecorder.start(250); // collect every 250 ms
+
+                // Also start speech recognition for live preview
+                recognition = initSR();
+                if (recognition) recognition.start();
+
+                isRecording = true;
+                setOrbState('listening');
+                document.getElementById('btnRecord').style.display = 'none';
+                document.getElementById('btnStop').style.display = 'inline-flex';
+                document.getElementById('transcriptBox').textContent = 'Listening… speak the phrase above.';
+                document.getElementById('timerRing').classList.add('visible');
+
+            } catch (err) {
+                alert('Microphone access denied or not available. Please allow microphone access and try again.');
+            }
+        }
+
+        async function stopRecording() {
+            if (!isRecording) return;
+            isRecording = false;
+
+            if (recognition) { try { recognition.stop(); } catch (e) { } }
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+
+            setOrbState('processing');
+            document.getElementById('orbLabel').textContent = 'Saving recording…';
+            document.getElementById('btnStop').style.display = 'none';
+            document.getElementById('timerRing').classList.remove('visible');
+
+            // Wait for onstop to finish collecting chunks
+            await new Promise(r => setTimeout(r, 500));
+
+            const blob = new Blob(audioChunks, {
+                type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm'
+            });
+            if (blob.size < 500) {
+                setOrbState('idle');
+                document.getElementById('btnRecord').style.display = 'inline-flex';
+                document.getElementById('orbLabel').textContent = 'Recording too short — try again.';
+                return;
+            }
+
+            await submitRecording(blob, currentIndex);
+        }
+
+        async function submitRecording(blob, idx) {
+            const ext = blob.type.includes('webm') ? 'webm' : 'wav';
+            const fd = new FormData();
+            fd.append('audio', blob, `spoken_phrase_${idx}.${ext}`);
+            fd.append('phrase_index', idx);
+            fd.append('csrfmiddlewaretoken', CSRF);
+
+            try {
+                const resp = await fetch('/myapp/speakvoice_record_post/', {
+                    method: 'POST', body: fd
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    document.getElementById('orbLabel').textContent = 'Error: ' + data.error;
+                    setOrbState('idle');
+                    document.getElementById('btnRecord').style.display = 'inline-flex';
+                    return;
+                }
+
+                // Mark current item as saved
+                const item = document.getElementById('recItem' + idx);
+                if (item) {
+                    item.classList.add('saved');
+                    item.querySelector('.ri-icon').innerHTML = '&#9989;';
+                }
+
+                // Mark step dot done
+                const dot = document.getElementById('step' + idx);
+                if (dot) { dot.classList.remove('active'); dot.classList.add('done'); dot.textContent = '✓'; }
+
+                if (data.trained) {
+                    // All done — show success overlay
+                    document.getElementById('enrolFlow').style.display = 'none';
+                    document.getElementById('successOverlay').classList.add('show');
+                } else {
+                    // Move to next phrase
+                    currentIndex++;
+                    if (currentIndex < TOTAL) {
+                        const nextDot = document.getElementById('step' + currentIndex);
+                        if (nextDot) nextDot.classList.add('active');
+                        const line = document.getElementById('line' + (currentIndex - 1));
+                        if (line) line.classList.add('done');
+                        document.getElementById('phraseLabel').textContent =
+                            `Phrase ${currentIndex + 1} of ${TOTAL}`;
+                        document.getElementById('phraseText').textContent = PHRASES[currentIndex];
+                        document.getElementById('transcriptBox').textContent = 'Your spoken words will appear here…';
+                        setOrbState('idle');
+                        document.getElementById('btnRecord').style.display = 'inline-flex';
+                        document.getElementById('orbLabel').textContent = 'Click the microphone to start recording';
+                    }
+                }
+            } catch (err) {
+                document.getElementById('orbLabel').textContent = 'Network error — please try again.';
+                setOrbState('idle');
+                document.getElementById('btnRecord').style.display = 'inline-flex';
+            }
+        }
+
+        function setOrbState(state) {
+            const orb = document.getElementById('voiceOrb');
+            const wave = document.getElementById('waveform');
+            orb.className = 'voice-orb';
+            wave.classList.remove('active');
+
+            if (state === 'listening') {
+                orb.classList.add('listening');
+                orb.innerHTML = '<i class="fa fa-stop"></i>';
+                wave.classList.add('active');
+                document.getElementById('orbLabel').textContent = 'Recording… click orb to stop';
+            } else if (state === 'done') {
+                orb.classList.add('done');
+                orb.innerHTML = '<i class="fa fa-check"></i>';
+            } else if (state === 'processing') {
+                orb.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+            } else {
+                orb.innerHTML = '<i class="fa fa-microphone"></i>';
+            }
+        }
+
+        // User popup
+        function toggleUserPopup() {
+            document.getElementById('userPopup').classList.toggle('open');
+            document.getElementById('userChevron').classList.toggle('up');
+        }
+        document.addEventListener('click', function (e) {
+            const trigger = document.getElementById('userCardTrigger');
+            if (trigger && !trigger.contains(e.target)) {
+                document.getElementById('userPopup').classList.remove('open');
+                document.getElementById('userChevron').classList.remove('up');
+            }
+        });
+
+        // If model is already trained from a previous session, show that in the status
+        {% if model_trained %}
+        document.addEventListener('DOMContentLoaded', function () {
+            const flow = document.getElementById('enrolFlow');
+            const infoEl = document.createElement('div');
+            infoEl.className = 'alert alert-info';
+            infoEl.style.marginBottom = '0px';
+            infoEl.innerHTML = '&#9432; You already have a trained voice model ({{ upload_count }} recording{{ upload_count|pluralize }}). Recording more phrases will improve accuracy.';
+            flow.querySelector('.enrol-header').after(infoEl);
+        });
+        {% endif %}
+    </script>
+</body>
+
+</html>

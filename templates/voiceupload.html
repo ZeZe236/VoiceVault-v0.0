@@ -4,6 +4,8 @@
 <head>
     <title>VoiceVault - Voice Uploads</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="data:,">
     <style>
         * {
             margin: 0;
@@ -54,52 +56,207 @@
             }
         }
 
-        .navbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 40px;
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            position: sticky;
+        :root {
+            --primary: #3b82f6;
+            --secondary: #06b6d4;
+            --accent: #0ea5e9;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(100, 180, 255, 0.15);
+        }
+
+        /* ── Sidebar ─────────────────────────────────── */
+        .sidebar {
+            position: fixed;
             top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background: rgba(255, 255, 255, .05);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
             z-index: 100;
         }
 
-        .nav-brand {
+        .sidebar-brand {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 22px;
+            padding: 0 24px 30px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .brand-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .nav-section {
+            padding: 20px 16px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, .35);
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255, 255, 255, .65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all .2s;
+            position: relative;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: #fff;
+            background: rgba(59, 130, 246, .15);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
             font-weight: 700;
         }
 
-        .nav-brand span {
-            font-size: 28px;
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
         }
 
-        .nav-links {
+        .user-role {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .user-card-chevron {
+            margin-left: auto;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .4);
+            transition: transform 0.2s;
+        }
+
+        .user-card-chevron.up {
+            transform: rotate(180deg);
+        }
+
+        .user-popup {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: rgba(10, 20, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 180, 255, 0.2);
+            border-radius: 14px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 200;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, .4);
+        }
+
+        .user-popup.open {
             display: flex;
-            gap: 24px;
         }
 
-        .nav-links a {
-            color: rgba(255, 255, 255, 0.7);
+        .user-popup-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .85);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
             text-decoration: none;
-            font-size: 14px;
-            transition: color 0.2s;
         }
 
-        .nav-links a:hover,
-        .nav-links a.active {
+        .user-popup-item:hover {
+            background: rgba(59, 130, 246, .18);
             color: #fff;
         }
 
+        .user-popup-item i {
+            width: 18px;
+            text-align: center;
+            color: #06b6d4;
+        }
+
         .page-content {
-            max-width: 920px;
-            margin: 50px auto;
-            padding: 0 24px 80px;
+            margin-left: 240px;
+            padding: 40px;
             position: relative;
             z-index: 1;
         }
@@ -161,9 +318,9 @@
         }
 
         .alert-warning {
-            background: rgba(248, 113, 113, 0.15);
-            border: 1px solid rgba(248, 113, 113, 0.4);
-            color: #fca5a5;
+            background: rgba(96, 165, 250, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            color: #93c5fd;
         }
 
         .modal-overlay {
@@ -701,17 +858,51 @@
 </head>
 
 <body>
-    <nav class="navbar">
-        <div class="nav-brand"><span><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
                     fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                     <line x1="8" y1="23" x2="16" y2="23" />
-                </svg></span> VoiceVault</div>
-        <div class="nav-links">
-            <a href="/myapp/uploadvoice_get/" class="active">Voice Files</a>
-            <a href="/myapp/logout_get/">Logout</a>
+                </svg></div>
+            <div>
+                <div class="brand-text">VoiceVault</div>
+                <div class="brand-sub">Client Portal</div>
+            </div>
+        </div>
+        <span class="nav-section">Menu</span>
+        <a href="/myapp/clienthome_get/" class="nav-item"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="/myapp/applock_get/" class="nav-item"><i class="fa fa-lock"></i> App Lock</a>
+        <a href="/myapp/doclock_get/" class="nav-item"><i class="fa fa-file-shield"></i> Doc Lock</a>
+        <a href="/myapp/speakvoice_get/" class="nav-item"><i class="fa fa-microphone-lines"></i> Voice Enrol</a>
+        <a href="/myapp/uploadvoice_get/" class="nav-item active"><i class="fa fa-upload"></i> Voice Files</a>
+        <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
+        <a href="/myapp/client_view_complaints_get/" class="nav-item"><i class="fa fa-list"></i> My Complaints</a>
+        <div class="sidebar-footer">
+            <div class="user-card" onclick="toggleUserPopup()" id="userCardTrigger">
+                {% if reg %}
+                <div class="user-avatar">{{ reg.name|first|upper }}</div>
+                <div>
+                    <div class="user-name">{{ reg.name }}</div>
+                    <div class="user-role">Client</div>
+                </div>
+                {% else %}
+                <div class="user-avatar">?</div>
+                <div>
+                    <div class="user-name">Setting Up</div>
+                    <div class="user-role">New User</div>
+                </div>
+                {% endif %}
+                <i class="fa fa-chevron-up user-card-chevron" id="userChevron"></i>
+                <div class="user-popup" id="userPopup">
+                    <a href="/myapp/clienthome_get/" class="user-popup-item"><i class="fa fa-user-circle"></i>
+                        Account</a>
+                    <a href="/myapp/logout_get/" class="user-popup-item" style="color:#fca5a5"><i
+                            class="fa fa-sign-out-alt" style="color:#f87171"></i> Logout</a>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -919,6 +1110,19 @@
             if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
             return (b / 1048576).toFixed(2) + ' MB';
         }
+        function toggleUserPopup() {
+            const popup = document.getElementById('userPopup');
+            const chevron = document.getElementById('userChevron');
+            popup.classList.toggle('open');
+            chevron.classList.toggle('up');
+        }
+        document.addEventListener('click', function (e) {
+            const trigger = document.getElementById('userCardTrigger');
+            if (trigger && !trigger.contains(e.target)) {
+                document.getElementById('userPopup').classList.remove('open');
+                document.getElementById('userChevron').classList.remove('up');
+            }
+        });
     </script>
 </body>
 

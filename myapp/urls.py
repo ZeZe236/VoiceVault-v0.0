@@ -43,6 +43,8 @@ urlpatterns = [
     path('uploadvoice_get/', views.uploadvoice_get),
     path('uploadvoice_post/', views.uploadvoice_post),
     path('uploadvoice_delete/<int:audio_id>/', views.uploadvoice_delete),
+    path('speakvoice_get/', views.speakvoice_get),
+    path('speakvoice_record_post/', views.speakvoice_record_post),
 
     # App Lock
     path('applock_get/', views.applock_get),

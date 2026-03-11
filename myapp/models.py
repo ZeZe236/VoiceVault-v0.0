@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
 
 # Create your models here.
 class Registration(models.Model):
@@ -27,6 +28,8 @@ class Complaints(models.Model):
     complaint=models.CharField(max_length=500)
     reply=models.CharField(max_length=500)
     status=models.CharField(max_length=100)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    user_complaint_id = models.PositiveIntegerField(default=0)
     REGISTRATION = models.ForeignKey(Registration, on_delete=models.CASCADE)
 
 
