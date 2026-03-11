@@ -55,4 +55,6 @@ urlpatterns = [
     path('doclock_toggle/<int:doc_id>/', views.doclock_toggle_post),
     path('doclock_access/<int:doc_id>/', views.doclock_access_post),
     path('doclock_rename/<int:doc_id>/', views.doclock_rename_post),
+    path('update_profile/', views.update_profile),
+    path('delete_account/', views.delete_account),
 ]

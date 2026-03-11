@@ -320,6 +320,202 @@
             color: #fca5a5;
         }
 
+        /* Account modal tabs */
+        .acct-tabs {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .acct-tab {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 9px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .acct-tab.active {
+            background: rgba(59, 130, 246, 0.25);
+            color: #fff;
+        }
+
+        .acct-tab.danger.active {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .acct-panel {
+            display: none;
+        }
+
+        .acct-panel.active {
+            display: block;
+        }
+
+        /* Edit form */
+        .edit-form-row {
+            margin-bottom: 14px;
+        }
+
+        .edit-form-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: rgba(255, 255, 255, .45);
+            margin-bottom: 6px;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .edit-input:focus {
+            border-color: rgba(59, 130, 246, 0.55);
+            background: rgba(255, 255, 255, 0.11);
+        }
+
+        .edit-select {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-save-profile {
+            flex: 1;
+            padding: 11px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: opacity .2s;
+        }
+
+        .btn-save-profile:hover {
+            opacity: .88;
+        }
+
+        .btn-save-profile:disabled {
+            opacity: .5;
+            cursor: default;
+        }
+
+        .edit-msg {
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .edit-msg.ok {
+            color: #86efac;
+            display: block;
+        }
+
+        .edit-msg.err {
+            color: #fca5a5;
+            display: block;
+        }
+
+        /* Delete section */
+        .delete-warning {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .delete-warning i {
+            font-size: 28px;
+            color: #f87171;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .delete-warning h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .delete-warning p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, .5);
+            line-height: 1.6;
+        }
+
+        .delete-confirm-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .delete-confirm-row input[type=checkbox] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .delete-confirm-row label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .7);
+            cursor: pointer;
+        }
+
+        .btn-delete-account {
+            width: 100%;
+            padding: 12px;
+            background: rgba(239, 68, 68, 0.18);
+            border: 1.5px solid rgba(239, 68, 68, 0.4);
+            border-radius: 10px;
+            color: #fca5a5;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .2s;
+        }
+
+        .btn-delete-account:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-delete-account:disabled {
+            opacity: .4;
+            cursor: default;
+        }
+
         .user-avatar {
             width: 38px;
             height: 38px;
@@ -817,37 +1013,82 @@
         <div class="account-modal">
             <button class="account-close" onclick="closeAccountModalBtn()">&times;</button>
             <div class="account-modal-header">
-                <div class="account-avatar">{{ reg.name|first|upper }}</div>
+                <div class="account-avatar" id="acctAvatar">{{ reg.name|first|upper }}</div>
                 <div>
-                    <div class="account-modal-title">{{ reg.name }}</div>
+                    <div class="account-modal-title" id="acctName">{{ reg.name }}</div>
                     <div class="account-modal-sub">Client Account</div>
                 </div>
             </div>
-            <div class="info-card">
-                <div class="info-row">
-                    <span class="info-label">Full Name</span>
-                    <span class="info-value">{{ reg.name }}</span>
+
+            <!-- Tabs -->
+            <div class="acct-tabs">
+                <button class="acct-tab active" onclick="switchAcctTab('profile', this)"><i class="fa fa-user"></i>
+                    Profile</button>
+                <button class="acct-tab" onclick="switchAcctTab('edit', this)"><i class="fa fa-pen"></i> Edit</button>
+                <button class="acct-tab danger" onclick="switchAcctTab('delete', this)"><i class="fa fa-trash"></i>
+                    Delete</button>
+            </div>
+
+            <!-- Profile tab -->
+            <div class="acct-panel active" id="panel-profile">
+                <div class="info-card">
+                    <div class="info-row"><span class="info-label">Full Name</span><span class="info-value"
+                            id="disp-name">{{ reg.name }}</span></div>
+                    <div class="info-row"><span class="info-label">Email</span><span class="info-value"
+                            id="disp-email">{{ reg.email }}</span></div>
+                    <div class="info-row"><span class="info-label">Phone</span><span class="info-value"
+                            id="disp-phno">{{ reg.phno }}</span></div>
+                    <div class="info-row"><span class="info-label">Gender</span><span class="info-value"
+                            id="disp-gender">{{ reg.gender }}</span></div>
+                    <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value"
+                            id="disp-dob">{{ reg.dob }}</span></div>
+                    <div class="info-row"><span class="info-label">Country</span><span class="info-value"
+                            id="disp-country">{{ reg.country }}</span></div>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Email</span>
-                    <span class="info-value">{{ reg.email }}</span>
+            </div>
+
+            <!-- Edit tab -->
+            <div class="acct-panel" id="panel-edit">
+                <div class="edit-form-row"><label>Full Name</label><input class="edit-input" id="edit-name"
+                        value="{{ reg.name }}"></div>
+                <div class="edit-form-row"><label>Email</label><input class="edit-input" type="email" id="edit-email"
+                        value="{{ reg.email }}"></div>
+                <div class="edit-form-row"><label>Phone</label><input class="edit-input" id="edit-phno"
+                        value="{{ reg.phno }}"></div>
+                <div class="edit-form-row">
+                    <label>Gender</label>
+                    <select class="edit-input edit-select" id="edit-gender">
+                        <option {% if reg.gender=='Male' %}selected{% endif %}>Male</option>
+                        <option {% if reg.gender=='Female' %}selected{% endif %}>Female</option>
+                        <option {% if reg.gender=='Other' %}selected{% endif %}>Other</option>
+                    </select>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Phone</span>
-                    <span class="info-value">{{ reg.phno }}</span>
+                <div class="edit-form-row"><label>Date of Birth</label><input class="edit-input" type="date"
+                        id="edit-dob" value="{{ reg.dob|date:'Y-m-d' }}"></div>
+                <div class="edit-form-row"><label>Country</label><input class="edit-input" id="edit-country"
+                        value="{{ reg.country }}"></div>
+                <div class="edit-actions">
+                    <button class="btn-save-profile" id="saveProfileBtn" onclick="submitEditProfile()"><i
+                            class="fa fa-check"></i> Save Changes</button>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Gender</span>
-                    <span class="info-value">{{ reg.gender }}</span>
+                <div class="edit-msg" id="editMsg"></div>
+            </div>
+
+            <!-- Delete tab -->
+            <div class="acct-panel" id="panel-delete">
+                <div class="delete-warning">
+                    <i class="fa fa-triangle-exclamation"></i>
+                    <h4>Delete your account?</h4>
+                    <p>This will permanently remove your account, all locked apps, documents, voice files, and
+                        complaints. This action cannot be undone.</p>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Date of Birth</span>
-                    <span class="info-value">{{ reg.dob }}</span>
+                <div class="delete-confirm-row">
+                    <input type="checkbox" id="deleteConfirmCheck"
+                        onchange="document.getElementById('deleteBtn').disabled = !this.checked">
+                    <label for="deleteConfirmCheck">I understand this is permanent and cannot be reversed.</label>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Country</span>
-                    <span class="info-value">{{ reg.country }}</span>
-                </div>
+                <button class="btn-delete-account" id="deleteBtn" disabled onclick="submitDeleteAccount()"><i
+                        class="fa fa-trash"></i> Delete My Account</button>
             </div>
         </div>
     </div>
@@ -868,7 +1109,10 @@
             e.stopPropagation();
             document.getElementById('accountOverlay').classList.add('open');
             document.getElementById('userPopup').classList.remove('open');
-            document.getElementById('userChevron').classList.remove('up');
+            // Reset to profile tab each open
+            switchAcctTab('profile', document.querySelector('.acct-tab'));
+        }
+        document.getElementById('userChevron').classList.remove('up');
         }
 
         function closeAccountModal(e) {
@@ -879,6 +1123,71 @@
 
         function closeAccountModalBtn() {
             document.getElementById('accountOverlay').classList.remove('open');
+        }
+
+        function switchAcctTab(name, btn) {
+            document.querySelectorAll('.acct-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.acct-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('panel-' + name).classList.add('active');
+            // Reset delete checkbox when switching
+            if (name !== 'delete') {
+                const cb = document.getElementById('deleteConfirmCheck');
+                if (cb) { cb.checked = false; document.getElementById('deleteBtn').disabled = true; }
+            }
+        }
+
+        function submitEditProfile() {
+            const btn = document.getElementById('saveProfileBtn');
+            const msg = document.getElementById('editMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+            msg.className = 'edit-msg';
+            const body = new URLSearchParams({
+                name: document.getElementById('edit-name').value.trim(),
+                email: document.getElementById('edit-email').value.trim(),
+                phno: document.getElementById('edit-phno').value.trim(),
+                gender: document.getElementById('edit-gender').value,
+                dob: document.getElementById('edit-dob').value,
+                country: document.getElementById('edit-country').value.trim(),
+            });
+            fetch('/myapp/update_profile/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+            }).then(r => r.json()).then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-check"></i> Save Changes';
+                if (data.success) {
+                    msg.textContent = 'Profile updated successfully.';
+                    msg.className = 'edit-msg ok';
+                    // Update profile tab display values
+                    document.getElementById('disp-name').textContent = body.get('name');
+                    document.getElementById('disp-email').textContent = body.get('email');
+                    document.getElementById('disp-phno').textContent = body.get('phno');
+                    document.getElementById('disp-gender').textContent = body.get('gender');
+                    document.getElementById('disp-dob').textContent = body.get('dob');
+                    document.getElementById('disp-country').textContent = body.get('country');
+                    // Update header name + sidebar avatar
+                    document.getElementById('acctName').textContent = data.name;
+                    document.getElementById('acctAvatar').textContent = data.name[0].toUpperCase();
+                    document.querySelectorAll('.user-name').forEach(el => el.textContent = data.name);
+                    document.querySelectorAll('.user-avatar').forEach(el => el.textContent = data.name[0].toUpperCase());
+                } else {
+                    msg.textContent = data.error || 'Update failed.';
+                    msg.className = 'edit-msg err';
+                }
+            });
+        }
+
+        function submitDeleteAccount() {
+            if (!confirm('Are you absolutely sure? All your data will be deleted permanently.')) return;
+            fetch('/myapp/delete_account/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            }).then(r => r.json()).then(data => {
+                if (data.success) window.location.href = '/myapp/glasslogin_get/';
+            });
         }
 
         function openSettingsModal(e) {

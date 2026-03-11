@@ -194,7 +194,8 @@ def client_complaint_get(request):
         return redirect('/myapp/client_voice_login_get/')
     if request.user.is_staff or request.user.is_superuser:
         return redirect('/myapp/adminhome_get/')
-    return render(request, 'client_complaint.html')
+    reg = Registration.objects.get(USER=request.user)
+    return render(request, 'client_complaint.html', {'reg': reg})
 
 
 def client_complaint_post(request):
@@ -225,7 +226,7 @@ def client_view_complaints_get(request):
         return redirect('/myapp/adminhome_get/')
     reg = Registration.objects.get(USER=request.user)
     complaints = Complaints.objects.filter(REGISTRATION=reg).order_by('-id')
-    return render(request, 'client_view_complaints.html', {'complaints': complaints})
+    return render(request, 'client_view_complaints.html', {'complaints': complaints, 'reg': reg})
 
 def uploadvoice_get(request):
     if not request.user.is_authenticated:
@@ -599,3 +600,30 @@ def doclock_rename_post(request, doc_id):
     doc.name = new_name
     doc.save()
     return JsonResponse({'success': True, 'new_name': new_name})
+
+
+def update_profile(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    try:
+        reg = Registration.objects.get(USER=request.user)
+    except Registration.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'})
+    reg.name   = request.POST.get('name',   reg.name).strip()
+    reg.email  = request.POST.get('email',  reg.email).strip()
+    reg.phno   = request.POST.get('phno',   reg.phno).strip()
+    reg.gender = request.POST.get('gender', reg.gender).strip()
+    reg.dob    = request.POST.get('dob',    reg.dob)
+    reg.country= request.POST.get('country',reg.country).strip()
+    reg.save()
+    return JsonResponse({'success': True, 'name': reg.name})
+
+
+def delete_account(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    user = request.user
+    from django.contrib.auth import logout as auth_logout
+    auth_logout(request)
+    user.delete()
+    return JsonResponse({'success': True})

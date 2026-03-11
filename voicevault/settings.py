@@ -25,9 +25,13 @@ SECRET_KEY = 'django-insecure-fuzco*e4h=#mf!*v^85k!x+kt07=jc1$gvorbl1dx%@hic+i&6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.ngrok-free.app', '.ngrok-free.dev', '.ngrok.io', '.ngrok.dev']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.18.227', '.trycloudflare.com']
 
-CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.ngrok-free.dev', 'https://*.ngrok.io', 'https://*.ngrok.dev']
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://*.trycloudflare.com',
+]
 
 
 # Application definition

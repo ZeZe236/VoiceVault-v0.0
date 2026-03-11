@@ -149,6 +149,43 @@
             text-align: center;
         }
 
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 12px;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
         .main {
             margin-left: 240px;
             padding: 40px;
@@ -402,9 +439,21 @@
         </div>
         <span class="nav-section">Menu</span>
         <a href="/myapp/clienthome_get/" class="nav-item"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="/myapp/applock_get/" class="nav-item"><i class="fa fa-lock"></i> App Lock</a>
+        <a href="/myapp/doclock_get/" class="nav-item"><i class="fa fa-file-shield"></i> Doc Lock</a>
+        <a href="/myapp/uploadvoice_get/" class="nav-item"><i class="fa fa-microphone"></i> Voice Files</a>
         <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
         <a href="/myapp/client_view_complaints_get/" class="nav-item active"><i class="fa fa-list"></i> My
             Complaints</a>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">{{ reg.name|first|upper }}</div>
+                <div>
+                    <div class="user-name">{{ reg.name }}</div>
+                    <div class="user-role">Client</div>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <main class="main">
