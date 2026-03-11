@@ -1057,10 +1057,10 @@
                         value="{{ reg.phno }}"></div>
                 <div class="edit-form-row">
                     <label>Gender</label>
-                    <select class="edit-input edit-select" id="edit-gender">
-                        <option {% if reg.gender=='Male' %}selected{% endif %}>Male</option>
-                        <option {% if reg.gender=='Female' %}selected{% endif %}>Female</option>
-                        <option {% if reg.gender=='Other' %}selected{% endif %}>Other</option>
+                    <select class="edit-input edit-select" id="edit-gender" data-gender="{{ reg.gender }}">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div class="edit-form-row"><label>Date of Birth</label><input class="edit-input" type="date"
@@ -1111,8 +1111,9 @@
             document.getElementById('userPopup').classList.remove('open');
             // Reset to profile tab each open
             switchAcctTab('profile', document.querySelector('.acct-tab'));
-        }
-        document.getElementById('userChevron').classList.remove('up');
+            // Set gender select from data attribute (avoids Django template == syntax issue)
+            var gSel = document.getElementById('edit-gender');
+            if (gSel) gSel.value = gSel.dataset.gender;
         }
 
         function closeAccountModal(e) {

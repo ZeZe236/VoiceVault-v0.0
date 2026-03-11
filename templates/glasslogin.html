@@ -318,6 +318,9 @@
             </svg></div>
         <h2>VoiceVault</h2>
         <p class="subtitle">Secure Voice Authentication</p>
+        <p
+            style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,200,100,0.75);background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.25);border-radius:8px;padding:5px 12px;display:inline-block;margin-bottom:20px;">
+            &#128274; Admin Portal Only</p>
         <form action="/myapp/login_post/" method="post">
             {% csrf_token %}
             <input type="text" name="username" placeholder="Username" required>
@@ -326,6 +329,13 @@
         </form>
         <div class="forgot-password">
             <a href="#">Forgot Password?</a>
+        </div>
+        <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
+            <a href="/myapp/client_voice_login_get/"
+                style="display:inline-block;padding:10px 24px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.2);border-radius:12px;color:rgba(255,255,255,0.8);text-decoration:none;font-size:13px;font-weight:500;transition:all 0.2s;letter-spacing:0.5px;"
+                onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='#fff'"
+                onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.8)'">&#128100;
+                User Login</a>
         </div>
     </div>
 

@@ -710,9 +710,7 @@
                     <line x1="8" y1="23" x2="16" y2="23" />
                 </svg></span> VoiceVault</div>
         <div class="nav-links">
-            <a href="/myapp/clienthome_get/">Home</a>
             <a href="/myapp/uploadvoice_get/" class="active">Voice Files</a>
-            <a href="/myapp/client_complaint_get/">Complaints</a>
             <a href="/myapp/logout_get/">Logout</a>
         </div>
     </nav>
@@ -721,6 +719,11 @@
         {% for message in messages %}
         {% if "successfully" in message.message %}
         <div class="alert alert-success">&#9989; {{ message }}</div>
+        <div class="alert alert-info"
+            style="background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.4);color:#fde68a;padding:12px 18px;border-radius:10px;margin-top:8px;font-size:13px;">
+            &#9888; <strong>Important:</strong> This step is crucial for the voice authentication model to work. Upload
+            at least 3 voice files before proceeding. You can modify or add files at any time after logging in.
+        </div>
         {% else %}
         <div class="alert alert-warning">&#9888; {{ message }}</div>
         {% endif %}
@@ -811,9 +814,15 @@
             {% endif %}
         </div>
 
-        {% if model_trained %}
+        {% if upload_count >= 3 %}
         <div class="proceed-bar">
             <a href="/myapp/client_voice_login_get/" class="btn-proceed">Proceed to Login &#8594;</a>
+        </div>
+        {% else %}
+        <div class="proceed-bar" style="text-align:center;">
+            <span
+                style="display:inline-block;padding:12px 24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.35);font-size:14px;cursor:not-allowed;">Proceed
+                to Login &mdash; {{ upload_count }}/3 files uploaded</span>
         </div>
         {% endif %}
     </div>

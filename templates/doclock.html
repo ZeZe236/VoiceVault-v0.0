@@ -166,6 +166,8 @@
             padding: 12px;
             background: rgba(255, 255, 255, .07);
             border-radius: 12px;
+            cursor: pointer;
+            position: relative;
         }
 
         .user-avatar {
@@ -188,6 +190,67 @@
         .user-role {
             font-size: 11px;
             color: rgba(255, 255, 255, .5);
+        }
+
+        .user-card-chevron {
+            margin-left: auto;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .4);
+            transition: transform 0.2s;
+        }
+
+        .user-card-chevron.up {
+            transform: rotate(180deg);
+        }
+
+        .user-popup {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: rgba(10, 20, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 180, 255, 0.2);
+            border-radius: 14px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 200;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, .4);
+        }
+
+        .user-popup.open {
+            display: flex;
+        }
+
+        .user-popup-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .85);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .user-popup-item:hover {
+            background: rgba(59, 130, 246, .18);
+            color: #fff;
+        }
+
+        .user-popup-item i {
+            width: 18px;
+            text-align: center;
+            color: #06b6d4;
         }
 
         /* ── Main ────────────────────────────────────── */
@@ -1000,11 +1063,18 @@
         <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
         <a href="/myapp/client_view_complaints_get/" class="nav-item"><i class="fa fa-list"></i> My Complaints</a>
         <div class="sidebar-footer">
-            <div class="user-card">
+            <div class="user-card" onclick="toggleUserPopup()" id="userCardTrigger">
                 <div class="user-avatar">{{ reg.name|first|upper }}</div>
                 <div>
                     <div class="user-name">{{ reg.name }}</div>
                     <div class="user-role">Client</div>
+                </div>
+                <i class="fa fa-chevron-up user-card-chevron" id="userChevron"></i>
+                <div class="user-popup" id="userPopup">
+                    <a href="/myapp/clienthome_get/" class="user-popup-item"><i class="fa fa-user-circle"></i>
+                        Account</a>
+                    <a href="/myapp/logout_get/" class="user-popup-item" style="color:#fca5a5"><i
+                            class="fa fa-sign-out-alt" style="color:#f87171"></i> Logout</a>
                 </div>
             </div>
         </div>
@@ -1400,6 +1470,19 @@
         }
         document.getElementById('voiceModal').addEventListener('click', function (e) {
             if (e.target === this) closeVoiceModal();
+        });
+        function toggleUserPopup() {
+            const popup = document.getElementById('userPopup');
+            const chevron = document.getElementById('userChevron');
+            popup.classList.toggle('open');
+            chevron.classList.toggle('up');
+        }
+        document.addEventListener('click', function (e) {
+            const trigger = document.getElementById('userCardTrigger');
+            if (trigger && !trigger.contains(e.target)) {
+                document.getElementById('userPopup').classList.remove('open');
+                document.getElementById('userChevron').classList.remove('up');
+            }
         });
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('open');
