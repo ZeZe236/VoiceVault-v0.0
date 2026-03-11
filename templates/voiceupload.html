@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - Voice Uploads</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #06111e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 12% 60%, rgba(20, 70, 200, 0.7), transparent 50%),
+                radial-gradient(circle at 70% 35%, rgba(60, 20, 160, 0.55), transparent 50%),
+                radial-gradient(circle at 88% 75%, rgba(0, 190, 215, 0.35), transparent 40%),
+                linear-gradient(160deg, rgba(4, 10, 30, 0.5), rgba(8, 4, 20, 0.3));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(0, 180, 255, 0.012) 10px, rgba(0, 180, 255, 0.012) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 40px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .nav-brand span {
+            font-size: 28px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #fff;
+        }
+
+        .page-content {
+            max-width: 920px;
+            margin: 50px auto;
+            padding: 0 24px 80px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .page-title h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-title p {
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .btn-upload-open {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-upload-open:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(59, 130, 246, 0.7);
+        }
+
+        .alert {
+            padding: 12px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(74, 222, 128, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            color: #86efac;
+        }
+
+        .alert-warning {
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(30px);
+            border: 1.5px solid rgba(255, 255, 255, 0.18);
+            border-radius: 22px;
+            padding: 44px 40px;
+            width: 430px;
+            max-width: 95vw;
+            text-align: center;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal h2 {
+            font-size: 22px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal p.sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(59, 130, 246, 0.5);
+            border-radius: 16px;
+            padding: 36px 20px;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-bottom: 22px;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: rgba(59, 130, 246, 0.9);
+            background: rgba(59, 130, 246, 0.12);
+        }
+
+        .drop-zone .icon {
+            font-size: 44px;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone .drop-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .drop-zone .drop-text strong {
+            color: #60a5fa;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .file-preview.show {
+            display: flex;
+        }
+
+        .file-preview .file-icon {
+            font-size: 28px;
+        }
+
+        .file-preview .file-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .file-preview .file-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #86efac;
+        }
+
+        .file-preview .file-size {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .file-preview .btn-clear {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .file-preview .btn-clear:hover {
+            color: #f87171;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(6, 182, 212, 0.8));
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-cancel {
+            padding: 14px 22px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        .table-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .table-card table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-card thead tr {
+            background: rgba(59, 130, 246, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table-card thead th {
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .table-card tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            transition: background 0.2s;
+        }
+
+        .table-card tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .table-card tbody tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .table-card td {
+            padding: 16px 20px;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .td-num {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 13px;
+        }
+
+        .td-filename {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .td-filename .ficon {
+            font-size: 18px;
+        }
+
+        .td-date {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .td-size {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .td-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-play,
+        .btn-download,
+        .btn-delete {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-play {
+            background: rgba(96, 165, 250, 0.2);
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            color: #93c5fd;
+        }
+
+        .btn-play:hover {
+            background: rgba(96, 165, 250, 0.35);
+        }
+
+        .btn-download {
+            background: rgba(74, 222, 128, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #86efac;
+        }
+
+        .btn-download:hover {
+            background: rgba(74, 222, 128, 0.3);
+        }
+
+        .btn-delete {
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+        }
+
+        .btn-delete:hover {
+            background: rgba(248, 113, 113, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 52px;
+            margin-bottom: 14px;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        .empty-state span {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            display: block;
+            margin-top: 6px;
+        }
+
+        .player-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 12, 41, 0.92);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px 40px;
+            align-items: center;
+            gap: 20px;
+            z-index: 150;
+        }
+
+        .player-bar.visible {
+            display: flex;
+        }
+
+        .player-bar .player-name {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            min-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-bar audio {
+            flex: 1;
+            height: 38px;
+        }
+
+        .player-bar .btn-close-player {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .player-bar .btn-close-player:hover {
+            color: #fff;
+        }
+
+        .proceed-bar {
+            margin-top: 28px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-proceed {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-proceed:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(59, 130, 246, 0.6);
+        }
+
+        /* ── Model Status Banner ─────────────────────────────── */
+        .status-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 22px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+            font-size: 14px;
+        }
+
+        .status-card .s-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+
+        .status-card .s-body strong {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .status-card .s-body span {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 13px;
+        }
+
+        .status-card.ready {
+            background: rgba(74, 222, 128, 0.12);
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            color: #86efac;
+        }
+
+        .status-card.warn {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            color: #fde68a;
+        }
+
+        .status-card.info {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #93c5fd;
+        }
+
+        /* ── Multi-file preview list ─────────────────────────── */
+        .multi-file-list {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 18px;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .multi-file-list.show {
+            display: flex;
+        }
+
+        .mfl-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(74, 222, 128, 0.09);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .mfl-item .mfl-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #86efac;
+            font-weight: 500;
+        }
+
+        .mfl-item .mfl-size {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 14px 20px;
+            }
+
+            .nav-links {
+                gap: 12px;
+            }
+
+            .nav-links a {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+
+            .page-hero {
+                padding: 30px 20px 20px;
+            }
+
+            .page-title h1 {
+                font-size: 22px;
+            }
+
+            .content-area {
+                padding: 20px 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-links a span {
+                display: none;
+            }
+
+            .nav-brand {
+                font-size: 15px;
+            }
+
+            .file-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><span><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                    fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg></span> VoiceVault</div>
+        <div class="nav-links">
+            <a href="/myapp/clienthome_get/">Home</a>
+            <a href="/myapp/uploadvoice_get/" class="active">Voice Files</a>
+            <a href="/myapp/client_complaint_get/">Complaints</a>
+            <a href="/myapp/logout_get/">Logout</a>
+        </div>
+    </nav>
+
+    <div class="page-content">
+        {% for message in messages %}
+        {% if "successfully" in message.message %}
+        <div class="alert alert-success">&#9989; {{ message }}</div>
+        {% else %}
+        <div class="alert alert-warning">&#9888; {{ message }}</div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="page-header">
+            <div class="page-title">
+                <h1>My Voice Files</h1>
+                <p>{{ upload_count }} file{{ upload_count|pluralize }} uploaded &mdash; minimum 3 required</p>
+            </div>
+            <button class="btn-upload-open" onclick="openModal()" title="Upload voice files">+</button>
+        </div>
+
+        {% if model_trained %}
+        <div class="status-card ready">
+            <span class="s-icon">&#9989;</span>
+            <div class="s-body">
+                <strong>Voice Model Ready</strong>
+                <span>Trained with {{ upload_count }} sample(s). Click &ldquo;Proceed to Login&rdquo; to
+                    authenticate.</span>
+            </div>
+        </div>
+        {% elif upload_count > 0 %}
+        <div class="status-card warn">
+            <span class="s-icon">&#9888;&#65039;</span>
+            <div class="s-body">
+                <strong>More samples needed &mdash; {{ upload_count }}/3 uploaded</strong>
+                <span>Upload {{ min_files|add:"-" }}{{ upload_count|add:"0" }} more file(s) to train your voice model
+                    and enable login.</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="status-card info">
+            <span class="s-icon">&#8505;&#65039;</span>
+            <div class="s-body">
+                <strong>No Voice Samples Yet</strong>
+                <span>Upload at least 3 audio files (WAV, MP3, OGG, M4A, FLAC &hellip;) to create your voice
+                    profile.</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="table-card">
+            {% if uploads %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>File Name</th>
+                        <th>Date</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in uploads %}
+                    <tr>
+                        <td class="td-num">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="td-filename"><span class="ficon">&#127925;</span>{{ file.filename }}</div>
+                        </td>
+                        <td class="td-date">{{ file.date|date:"M d, Y" }}</td>
+                        <td class="td-size">{{ file.filesize|filesizeformat }}</td>
+                        <td>
+                            <div class="td-actions">
+                                <button class="btn-play"
+                                    onclick="playFile('{{ file.audio_file.url }}','{{ file.filename }}')">&#9654;
+                                    Play</button>
+                                <a class="btn-download" href="{{ file.audio_file.url }}"
+                                    download="{{ file.filename }}">&#11015; Download</a>
+                                <form method="post" action="/myapp/uploadvoice_delete/{{ file.id }}/"
+                                    onsubmit="return confirm('Delete this file?');" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-delete">&#128465; Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">&#127908;</div>
+                <p>No voice files uploaded yet</p>
+                <span>Click the <strong>+</strong> button above to upload your first file</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if model_trained %}
+        <div class="proceed-bar">
+            <a href="/myapp/client_voice_login_get/" class="btn-proceed">Proceed to Login &#8594;</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+        <div class="modal">
+            <h2>Upload Voice File</h2>
+            <p class="sub">Supported: MP3, WAV, OGG, M4A, FLAC, WEBM</p>
+            <form method="post" action="/myapp/uploadvoice_post/" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+                    ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                    <div class="icon">&#127925;</div>
+                    <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop<br>
+                        multiple audio files here (WAV, MP3, OGG, M4A, FLAC).
+                        <br><small style="opacity:.6">Select at least 3 files total to enable voice login.</small>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" name="voice_files"
+                    accept=".mp3,.wav,.ogg,.m4a,.flac,.webm,.aac,audio/*" multiple onchange="onFileSelected(this)">
+                <div class="multi-file-list" id="multiFileList"></div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit" id="submitBtn" disabled>&#11014; Upload</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="player-bar" id="playerBar">
+        <span class="player-name" id="playerName">-</span>
+        <audio id="audioPlayer" controls></audio>
+        <button class="btn-close-player" onclick="closePlayer()">&#x2715;</button>
+    </div>
+
+    <script>
+        function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+        function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); clearFile(); }
+        function handleOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+        function onFileSelected(input) {
+            if (input.files && input.files.length > 0) showFiles(input.files);
+        }
+
+        function showFiles(files) {
+            const list = document.getElementById('multiFileList');
+            list.innerHTML = '';
+            for (const f of files) {
+                const row = document.createElement('div');
+                row.className = 'mfl-item';
+                row.innerHTML = `<span>&#127925;</span><span class="mfl-name">${f.name}</span><span class="mfl-size">${formatBytes(f.size)}</span>`;
+                list.appendChild(row);
+            }
+            list.classList.add('show');
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function clearFile() {
+            document.getElementById('fileInput').value = '';
+            const list = document.getElementById('multiFileList');
+            list.innerHTML = '';
+            list.classList.remove('show');
+            document.getElementById('dropZone').style.display = '';
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+        function onDragLeave(e) { document.getElementById('dropZone').classList.remove('drag-over'); }
+        function onDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drag-over');
+            const droppedFiles = e.dataTransfer.files;
+            if (droppedFiles.length) {
+                const dt = new DataTransfer();
+                for (const f of droppedFiles) dt.items.add(f);
+                document.getElementById('fileInput').files = dt.files;
+                showFiles(droppedFiles);
+            }
+        }
+        function playFile(url, name) {
+            document.getElementById('playerName').textContent = name;
+            document.getElementById('audioPlayer').src = url;
+            document.getElementById('playerBar').classList.add('visible');
+            document.getElementById('audioPlayer').play();
+        }
+        function closePlayer() {
+            document.getElementById('audioPlayer').pause();
+            document.getElementById('audioPlayer').src = '';
+            document.getElementById('playerBar').classList.remove('visible');
+        }
+        function formatBytes(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            return (b / 1048576).toFixed(2) + ' MB';
+        }
+    </script>
+</body>
+
+</html>

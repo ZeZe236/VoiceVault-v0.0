@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - App Lock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --secondary: #06b6d4;
+            --accent: #0ea5e9;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(100, 180, 255, 0.15);
+        }
+
+        body {
+            min-height: 100vh;
+            background: #06111e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 12% 60%, rgba(20, 70, 200, 0.7), transparent 50%),
+                radial-gradient(circle at 70% 35%, rgba(60, 20, 160, 0.55), transparent 50%),
+                radial-gradient(circle at 88% 75%, rgba(0, 190, 215, 0.35), transparent 40%),
+                linear-gradient(160deg, rgba(4, 10, 30, 0.5), rgba(8, 4, 20, 0.3));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(0, 180, 255, 0.012) 10px, rgba(0, 180, 255, 0.012) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        /* ── Sidebar ─────────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 24px 30px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .brand-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .nav-section {
+            padding: 20px 16px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, .35);
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255, 255, 255, .65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all .2s;
+            position: relative;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: #fff;
+            background: rgba(59, 130, 246, .15);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 12px;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        /* ── Main area ───────────────────────────────── */
+        .main {
+            margin-left: 240px;
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .topbar h1 {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .topbar p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .5);
+            margin-top: 3px;
+        }
+
+        .badge-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, .15);
+            border: 1px solid rgba(59, 130, 246, .3);
+            border-radius: 50px;
+            font-size: 12px;
+            color: #93c5fd;
+        }
+
+        /* ── Info banner ─────────────────────────────── */
+        .info-banner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            background: rgba(59, 130, 246, .12);
+            border: 1px solid rgba(59, 130, 246, .3);
+            border-radius: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .75);
+            margin-bottom: 28px;
+        }
+
+        .info-banner i {
+            font-size: 18px;
+            color: #93c5fd;
+            flex-shrink: 0;
+        }
+
+        /* ── App grid ────────────────────────────────── */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .app-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 22px 16px 16px;
+            text-align: center;
+            transition: transform .2s, border-color .3s, box-shadow .3s;
+            position: relative;
+        }
+
+        .app-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .app-card.locked {
+            border-color: rgba(59, 130, 246, .45);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, .15);
+        }
+
+        .app-icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0 auto 12px;
+        }
+
+        .app-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Lock badge */
+        .lock-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            background: rgba(59, 130, 246, .25);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .app-card.locked .lock-badge {
+            opacity: 1;
+        }
+
+        /* Toggle switch */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .6);
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, .12);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, .15);
+            transition: background .3s;
+        }
+
+        .slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 2px;
+            background: rgba(255, 255, 255, .5);
+            border-radius: 50%;
+            transition: transform .3s, background .3s;
+        }
+
+        .toggle input:checked+.slider {
+            background: linear-gradient(135deg, rgba(59, 130, 246, .8), rgba(6, 182, 212, .8));
+            border-color: rgba(59, 130, 246, .5);
+        }
+
+        .toggle input:checked+.slider::before {
+            transform: translateX(20px);
+            background: #fff;
+        }
+
+        .toggle-label {
+            font-size: 11px;
+            min-width: 38px;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 10px 18px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background: rgba(74, 222, 128, .15);
+            border: 1px solid rgba(74, 222, 128, .35);
+            color: #86efac;
+        }
+
+        .alert-warning {
+            background: rgba(248, 113, 113, .15);
+            border: 1px solid rgba(248, 113, 113, .35);
+            color: #fca5a5;
+        }
+
+        /* ── Voice Modal ─────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            backdrop-filter: blur(8px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(30px);
+            border: 1.5px solid rgba(255, 255, 255, .18);
+            border-radius: 24px;
+            padding: 40px 36px 32px;
+            width: 380px;
+            max-width: 95vw;
+            text-align: center;
+            animation: popIn .3s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal .modal-sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .55);
+            margin-bottom: 22px;
+        }
+
+        /* Orb */
+        .orb {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .5), rgba(6, 182, 212, .5));
+            border: 3px solid rgba(255, 255, 255, .25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all .3s;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, .3);
+        }
+
+        .orb::before,
+        .orb::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, .35);
+        }
+
+        .orb::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .orb::after {
+            width: 118px;
+            height: 118px;
+            border-color: rgba(6, 182, 212, .25);
+        }
+
+        .orb.listening {
+            background: linear-gradient(135deg, rgba(234, 82, 82, .7), rgba(200, 50, 120, .7));
+            border-color: rgba(255, 100, 100, .5);
+            box-shadow: 0 0 24px rgba(234, 82, 82, .5);
+            animation: orbPulse 1.2s ease-in-out infinite;
+        }
+
+        .orb.listening::before {
+            animation: ripple 1.5s ease-out infinite;
+        }
+
+        .orb.listening::after {
+            animation: ripple 1.5s ease-out .5s infinite;
+        }
+
+        .orb.done {
+            background: linear-gradient(135deg, rgba(74, 222, 128, .6), rgba(34, 197, 94, .6));
+            border-color: rgba(74, 222, 128, .5);
+            box-shadow: 0 0 20px rgba(74, 222, 128, .4);
+        }
+
+        @keyframes orbPulse {
+
+            0%,
+            100% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.06)
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: .6
+            }
+
+            100% {
+                transform: scale(1.55);
+                opacity: 0
+            }
+        }
+
+        .orb-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, .6);
+            margin-bottom: 12px;
+        }
+
+        .transcript {
+            background: rgba(0, 0, 0, .2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .75);
+            min-height: 38px;
+            font-style: italic;
+            border: 1px dashed rgba(255, 255, 255, .18);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-error {
+            background: rgba(248, 113, 113, .15);
+            border: 1px solid rgba(248, 113, 113, .35);
+            color: #fca5a5;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 12px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .btn-confirm {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .7), rgba(6, 182, 212, .7));
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-confirm:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .btn-confirm:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, .4);
+        }
+
+        .btn-cancel {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, .06);
+            border: 1.5px solid rgba(255, 255, 255, .15);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, .7);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+        }
+
+        /* ── Mobile Responsive ── */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 300;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            font-size: 22px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 150;
+        }
+
+        .sidebar-overlay.open {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                transform: translateX(-260px);
+                transition: transform 0.3s ease;
+                z-index: 200;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main {
+                margin-left: 0 !important;
+                padding: 72px 16px 24px;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .topbar h1 {
+                font-size: 20px;
+            }
+
+            .app-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .app-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                    fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg></div>
+            <div>
+                <div class="brand-text">VoiceVault</div>
+                <div class="brand-sub">Client Portal</div>
+            </div>
+        </div>
+        <span class="nav-section">Menu</span>
+        <a href="/myapp/clienthome_get/" class="nav-item"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="/myapp/applock_get/" class="nav-item active"><i class="fa fa-lock"></i> App Lock</a>
+        <a href="/myapp/doclock_get/" class="nav-item"><i class="fa fa-file-shield"></i> Doc Lock</a>
+        <a href="/myapp/uploadvoice_get/" class="nav-item"><i class="fa fa-microphone"></i> Voice Files</a>
+        <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
+        <a href="/myapp/client_view_complaints_get/" class="nav-item"><i class="fa fa-list"></i> My Complaints</a>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">{{ reg.name|first|upper }}</div>
+                <div>
+                    <div class="user-name">{{ reg.name }}</div>
+                    <div class="user-role">Client</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>App Lock</h1>
+                <p>Lock apps with your voice passphrase &mdash; {{ locked_count }} app{{ locked_count|pluralize }}
+                    currently locked</p>
+            </div>
+            <div class="badge-info">
+                <i class="fa fa-shield-halved"></i>
+                Voice-protected
+            </div>
+        </div>
+
+        {% for message in messages %}
+        <div
+            class="alert {% if 'successfully' in message.message or 'success' in message.tags %}alert-success{% else %}alert-warning{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+
+        <div class="info-banner">
+            <i class="fa fa-circle-info"></i>
+            <span>
+                Toggle the switch to <strong>lock</strong> an app instantly. To <strong>unlock</strong>, you must speak
+                your registered voice passphrase.
+                Locking an app marks it as protected &mdash; any attempt to access it will require voice verification.
+            </span>
+        </div>
+
+        <div class="app-grid">
+            {% for app in apps %}
+            <div class="app-card {% if app.is_locked %}locked{% endif %}" id="card-{{ app.id }}">
+                <div class="lock-badge">🔒</div>
+                <div class="app-icon">
+                    {% if app.app_key == 'whatsapp' %}<i class="fab fa-whatsapp" style="color:#25d366"></i>
+                    {% elif app.app_key == 'instagram' %}<i class="fab fa-instagram" style="color:#e1306c"></i>
+                    {% elif app.app_key == 'facebook' %}<i class="fab fa-facebook-f" style="color:#1877f2"></i>
+                    {% elif app.app_key == 'youtube' %}<i class="fab fa-youtube" style="color:#ff0000"></i>
+                    {% elif app.app_key == 'camera' %}<i class="fas fa-camera" style="color:#60a5fa"></i>
+                    {% elif app.app_key == 'gallery' %}<i class="fas fa-images" style="color:#a78bfa"></i>
+                    {% elif app.app_key == 'messages' %}<i class="fas fa-comment-dots" style="color:#34d399"></i>
+                    {% elif app.app_key == 'email' %}<i class="fas fa-envelope" style="color:#60a5fa"></i>
+                    {% elif app.app_key == 'contacts' %}<i class="fas fa-address-book" style="color:#f59e0b"></i>
+                    {% elif app.app_key == 'settings' %}<i class="fas fa-gear" style="color:#94a3b8"></i>
+                    {% elif app.app_key == 'browser' %}<i class="fas fa-globe" style="color:#38bdf8"></i>
+                    {% elif app.app_key == 'maps' %}<i class="fas fa-map-location-dot" style="color:#f87171"></i>
+                    {% elif app.app_key == 'calculator' %}<i class="fas fa-calculator" style="color:#a3e635"></i>
+                    {% elif app.app_key == 'clock' %}<i class="fas fa-clock" style="color:#fbbf24"></i>
+                    {% elif app.app_key == 'tiktok' %}<i class="fab fa-tiktok" style="color:#ee1d52"></i>
+                    {% elif app.app_key == 'snapchat' %}<i class="fab fa-snapchat" style="color:#fffc00"></i>
+                    {% elif app.app_key == 'twitter' %}<i class="fab fa-x-twitter" style="color:#e7e9ea"></i>
+                    {% elif app.app_key == 'spotify' %}<i class="fab fa-spotify" style="color:#1db954"></i>
+                    {% elif app.app_key == 'netflix' %}<i class="fas fa-film" style="color:#e50914"></i>
+                    {% elif app.app_key == 'files' %}<i class="fas fa-folder" style="color:#fbbf24"></i>
+                    {% else %}<i class="fas fa-mobile-alt" style="color:#60a5fa"></i>{% endif %}
+                </div>
+                <div class="app-name">{{ app.app_name }}</div>
+                <div class="toggle-wrap">
+                    <span class="toggle-label" id="label-{{ app.id }}">{% if app.is_locked %}Locked{% else %}Open{%
+                        endif %}</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-{{ app.id }}" data-id="{{ app.id }}" {% if app.is_locked
+                            %}checked{% endif %} onchange="handleToggle(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- Voice Unlock Modal -->
+    <div class="modal-overlay" id="voiceModal">
+        <div class="modal">
+            <h3>🎤 Voice Unlock</h3>
+            <p class="modal-sub" id="modalSubtext">Speak your passphrase to unlock this app</p>
+
+            <div class="orb" id="orb" onclick="toggleRecording()"><svg xmlns="http://www.w3.org/2000/svg" width="32"
+                    height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg></div>
+            <div class="orb-label" id="orbLabel">Tap to start recording</div>
+            <div class="transcript" id="transcript">Your spoken phrase will appear here…</div>
+            <div class="modal-error" id="modalError"></div>
+
+            <div class="modal-actions">
+                <button class="btn-confirm" id="confirmBtn" disabled onclick="submitUnlock()">Unlock</button>
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CSRF = '{{ csrf_token }}';
+        let pendingAppId = null;
+        let pendingCheckbox = null;
+        let recognition = null;
+        let isRecording = false;
+        let capturedPhrase = '';
+
+        function handleToggle(cb) {
+            const appId = cb.dataset.id;
+            if (cb.checked) {
+                // Locking — no voice needed
+                lockApp(appId, cb);
+            } else {
+                // Unlocking — voice required: revert checkbox immediately, open modal
+                cb.checked = true;
+                openModal(appId, cb);
+            }
+        }
+
+        function lockApp(appId, cb) {
+            fetch(`/myapp/applock_toggle/${appId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=lock'
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        setCardLocked(appId, true);
+                    } else {
+                        cb.checked = false;
+                    }
+                });
+        }
+
+        function openModal(appId, cb) {
+            pendingAppId = appId;
+            pendingCheckbox = cb;
+            capturedPhrase = '';
+            document.getElementById('confirmBtn').disabled = true;
+            document.getElementById('transcript').textContent = 'Your spoken phrase will appear here\u2026';
+            document.getElementById('modalError').style.display = 'none';
+            setOrbState('idle');
+            document.getElementById('voiceModal').classList.add('open');
+        }
+
+        function closeModal() {
+            stopRecording();
+            document.getElementById('voiceModal').classList.remove('open');
+            pendingAppId = null;
+            pendingCheckbox = null;
+        }
+
+        function submitUnlock() {
+            if (!capturedPhrase || !pendingAppId) return;
+            document.getElementById('confirmBtn').disabled = true;
+            document.getElementById('confirmBtn').textContent = 'Verifying…';
+
+            fetch(`/myapp/applock_toggle/${pendingAppId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=unlock&voice_phrase=${encodeURIComponent(capturedPhrase)}`
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        setCardLocked(pendingAppId, false);
+                        if (pendingCheckbox) pendingCheckbox.checked = false;
+                        closeModal();
+                    } else {
+                        const errEl = document.getElementById('modalError');
+                        errEl.textContent = data.error || 'Verification failed.';
+                        errEl.style.display = 'block';
+                        document.getElementById('confirmBtn').textContent = 'Unlock';
+                        document.getElementById('confirmBtn').disabled = false;
+                    }
+                });
+        }
+
+        function setCardLocked(appId, locked) {
+            const card = document.getElementById('card-' + appId);
+            const label = document.getElementById('label-' + appId);
+            if (locked) {
+                card.classList.add('locked');
+                if (label) label.textContent = 'Locked';
+            } else {
+                card.classList.remove('locked');
+                if (label) label.textContent = 'Open';
+            }
+        }
+
+        /* ── Speech Recognition ─────────────────────────── */
+        function initRecognition() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { alert('Speech recognition not supported. Use Chrome or Edge.'); return null; }
+            const r = new SR();
+            r.lang = 'en-US'; r.interimResults = true; r.maxAlternatives = 1;
+            r.onresult = function (e) {
+                let txt = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+                document.getElementById('transcript').textContent = txt;
+                if (e.results[e.results.length - 1].isFinal) {
+                    capturedPhrase = txt.trim();
+                    document.getElementById('confirmBtn').disabled = false;
+                    setOrbState('done');
+                }
+            };
+            r.onerror = function (e) { stopRecording(); setOrbState('idle'); };
+            r.onend = function () { stopRecording(); };
+            return r;
+        }
+
+        function toggleRecording() { isRecording ? stopRecording() : startRecording(); }
+
+        function startRecording() {
+            recognition = initRecognition();
+            if (!recognition) return;
+            recognition.start();
+            isRecording = true;
+            setOrbState('listening');
+            document.getElementById('transcript').textContent = 'Listening… speak your passphrase.';
+            document.getElementById('confirmBtn').disabled = true;
+            capturedPhrase = '';
+        }
+
+        function stopRecording() {
+            if (recognition) { try { recognition.stop(); } catch (e) { } }
+            isRecording = false;
+            if (!capturedPhrase) setOrbState('idle');
+        }
+
+        function setOrbState(state) {
+            const orb = document.getElementById('orb');
+            const label = document.getElementById('orbLabel');
+            orb.className = 'orb';
+            if (state === 'listening') {
+                orb.classList.add('listening');
+                orb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/></svg>';
+                label.textContent = 'Recording… tap to stop';
+            } else if (state === 'done') {
+                orb.classList.add('done');
+                orb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                label.textContent = 'Phrase captured! Click Unlock.';
+            } else {
+                orb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+                label.textContent = 'Tap to start recording';
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('voiceModal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-overlay').classList.toggle('open');
+        }
+    </script>
+</body>
+
+</html>

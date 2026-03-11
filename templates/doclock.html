@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - Document Lock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --secondary: #06b6d4;
+            --accent: #0ea5e9;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(100, 180, 255, 0.15);
+        }
+
+        body {
+            min-height: 100vh;
+            background: #06111e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 12% 60%, rgba(20, 70, 200, 0.7), transparent 50%),
+                radial-gradient(circle at 70% 35%, rgba(60, 20, 160, 0.55), transparent 50%),
+                radial-gradient(circle at 88% 75%, rgba(0, 190, 215, 0.35), transparent 40%),
+                linear-gradient(160deg, rgba(4, 10, 30, 0.5), rgba(8, 4, 20, 0.3));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(0, 180, 255, 0.012) 10px, rgba(0, 180, 255, 0.012) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        /* ── Sidebar ─────────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background: rgba(255, 255, 255, .05);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 24px 30px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .brand-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .nav-section {
+            padding: 20px 16px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, .35);
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255, 255, 255, .65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all .2s;
+            position: relative;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: #fff;
+            background: rgba(59, 130, 246, .15);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 12px;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        /* ── Main ────────────────────────────────────── */
+        .main {
+            margin-left: 240px;
+            padding: 40px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .topbar h1 {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .topbar p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .5);
+            margin-top: 3px;
+        }
+
+        .btn-open-upload {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .8), rgba(6, 182, 212, .8));
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none;
+        }
+
+        .btn-open-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, .4);
+        }
+
+        /* ── Alerts ──────────────────────────────────── */
+        .alert {
+            padding: 10px 18px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background: rgba(74, 222, 128, .15);
+            border: 1px solid rgba(74, 222, 128, .35);
+            color: #86efac;
+        }
+
+        .alert-warning {
+            background: rgba(248, 113, 113, .15);
+            border: 1px solid rgba(248, 113, 113, .35);
+            color: #fca5a5;
+        }
+
+        /* ── Info banner ─────────────────────────────── */
+        .info-banner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            background: rgba(59, 130, 246, .12);
+            border: 1px solid rgba(59, 130, 246, .3);
+            border-radius: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .75);
+            margin-bottom: 24px;
+        }
+
+        .info-banner i {
+            font-size: 18px;
+            color: #93c5fd;
+            flex-shrink: 0;
+        }
+
+        /* ── Table card ──────────────────────────────── */
+        .table-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .table-card table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-card thead tr {
+            background: rgba(59, 130, 246, .2);
+            border-bottom: 1px solid rgba(255, 255, 255, .1);
+        }
+
+        .table-card thead th {
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: rgba(255, 255, 255, .6);
+        }
+
+        .table-card tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            transition: background .2s;
+        }
+
+        .table-card tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .table-card tbody tr:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .table-card td {
+            padding: 14px 18px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .td-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .td-date {
+            color: rgba(255, 255, 255, .82);
+        }
+
+        .td-size {
+            color: rgba(255, 255, 255, .82);
+        }
+
+        /* Status pill */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-pill.locked {
+            background: rgba(59, 130, 246, .2);
+            border: 1px solid rgba(59, 130, 246, .4);
+            color: #93c5fd;
+        }
+
+        .status-pill.unlocked {
+            background: rgba(74, 222, 128, .15);
+            border: 1px solid rgba(74, 222, 128, .35);
+            color: #86efac;
+        }
+
+        /* Action buttons */
+        .actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-act {
+            padding: 6px 13px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-download {
+            background: rgba(96, 165, 250, .2);
+            border: 1px solid rgba(96, 165, 250, .35);
+            color: #93c5fd;
+        }
+
+        .btn-download:hover {
+            background: rgba(96, 165, 250, .35);
+        }
+
+        .btn-lock-toggle {
+            background: rgba(59, 130, 246, .18);
+            border: 1px solid rgba(59, 130, 246, .38);
+            color: #93c5fd;
+        }
+
+        .btn-lock-toggle:hover {
+            background: rgba(59, 130, 246, .32);
+        }
+
+        .btn-rename {
+            background: rgba(6, 182, 212, .15);
+            border: 1px solid rgba(6, 182, 212, .35);
+            color: #67e8f9;
+        }
+
+        .btn-rename:hover {
+            background: rgba(6, 182, 212, .3);
+        }
+
+        .btn-delete {
+            background: rgba(248, 113, 113, .15);
+            border: 1px solid rgba(248, 113, 113, .3);
+            color: #fca5a5;
+        }
+
+        .btn-delete:hover {
+            background: rgba(248, 113, 113, .3);
+        }
+
+        /* Rename modal */
+        .rename-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rename-overlay.open {
+            display: flex;
+        }
+
+        .rename-modal {
+            background: rgba(8, 18, 40, 0.97);
+            border: 1px solid rgba(100, 180, 255, 0.2);
+            border-radius: 18px;
+            padding: 32px;
+            width: 400px;
+            max-width: 95vw;
+        }
+
+        .rename-modal h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .rename-modal p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .5);
+            margin-bottom: 20px;
+        }
+
+        .rename-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+
+        .rename-input:focus {
+            border-color: rgba(59, 130, 246, 0.6);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .rename-error {
+            font-size: 12px;
+            color: #fca5a5;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        text-align: center;
+        padding: 60px 20px;
+        color: rgba(255, 255, 255, .3);
+        }
+
+        .empty-state .ei {
+            font-size: 52px;
+            margin-bottom: 14px;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        .empty-state small {
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .45);
+        }
+
+        /* File type icon */
+        .ftype-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        /* ── Upload modal ─────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            backdrop-filter: blur(8px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(30px);
+            border: 1.5px solid rgba(255, 255, 255, .18);
+            border-radius: 24px;
+            padding: 38px 34px 30px;
+            width: 420px;
+            max-width: 95vw;
+            text-align: center;
+            animation: popIn .3s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(.9)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1)
+            }
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal .modal-sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .55);
+            margin-bottom: 22px;
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed rgba(59, 130, 246, .5);
+            border-radius: 16px;
+            padding: 34px 20px;
+            cursor: pointer;
+            transition: all .25s;
+            margin-bottom: 16px;
+            background: rgba(59, 130, 246, .05);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: rgba(59, 130, 246, .9);
+            background: rgba(59, 130, 246, .12);
+        }
+
+        .drop-zone .dz-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone .dz-text {
+            color: rgba(255, 255, 255, .7);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .drop-zone .dz-text strong {
+            color: #60a5fa;
+        }
+
+        #docInput {
+            display: none;
+        }
+
+        /* File preview */
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(74, 222, 128, .1);
+            border: 1px solid rgba(74, 222, 128, .3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .file-preview.show {
+            display: flex;
+        }
+
+        .file-preview .fp-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: #86efac;
+        }
+
+        .file-preview .fp-size {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .btn-clear-file {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, .5);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn-clear-file:hover {
+            color: #f87171;
+        }
+
+        /* Modal actions */
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            padding: 13px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .8), rgba(6, 182, 212, .8));
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-submit:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .btn-submit:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, .4);
+        }
+
+        .btn-cancel {
+            padding: 13px 20px;
+            background: rgba(255, 255, 255, .06);
+            border: 1.5px solid rgba(255, 255, 255, .15);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, .7);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+        }
+
+        /* ── Voice modal ─────────────────────────────── */
+        .voice-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            backdrop-filter: blur(8px);
+            z-index: 400;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-modal-overlay.open {
+            display: flex;
+        }
+
+        .voice-modal {
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(30px);
+            border: 1.5px solid rgba(255, 255, 255, .18);
+            border-radius: 24px;
+            padding: 38px 34px 30px;
+            width: 380px;
+            max-width: 95vw;
+            text-align: center;
+            animation: popIn .3s ease;
+        }
+
+        .voice-modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .vm-sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .55);
+            margin-bottom: 20px;
+        }
+
+        .orb {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .5), rgba(6, 182, 212, .5));
+            border: 3px solid rgba(255, 255, 255, .25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all .3s;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, .3);
+        }
+
+        .orb::before,
+        .orb::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, .35);
+        }
+
+        .orb::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .orb::after {
+            width: 118px;
+            height: 118px;
+            border-color: rgba(6, 182, 212, .25);
+        }
+
+        .orb.listening {
+            background: linear-gradient(135deg, rgba(234, 82, 82, .7), rgba(200, 50, 120, .7));
+            border-color: rgba(255, 100, 100, .5);
+            box-shadow: 0 0 24px rgba(234, 82, 82, .5);
+            animation: orbPulse 1.2s ease-in-out infinite;
+        }
+
+        .orb.listening::before {
+            animation: ripple 1.5s ease-out infinite;
+        }
+
+        .orb.listening::after {
+            animation: ripple 1.5s ease-out .5s infinite;
+        }
+
+        .orb.done {
+            background: linear-gradient(135deg, rgba(74, 222, 128, .6), rgba(34, 197, 94, .6));
+            border-color: rgba(74, 222, 128, .5);
+            box-shadow: 0 0 20px rgba(74, 222, 128, .4);
+        }
+
+        @keyframes orbPulse {
+
+            0%,
+            100% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.06)
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: .6
+            }
+
+            100% {
+                transform: scale(1.55);
+                opacity: 0
+            }
+        }
+
+        .orb-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, .6);
+            margin-bottom: 12px;
+        }
+
+        .transcript {
+            background: rgba(0, 0, 0, .2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .75);
+            min-height: 38px;
+            font-style: italic;
+            border: 1px dashed rgba(255, 255, 255, .18);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vm-error {
+            background: rgba(248, 113, 113, .15);
+            border: 1px solid rgba(248, 113, 113, .35);
+            color: #fca5a5;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .vm-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-vm-confirm {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .7), rgba(6, 182, 212, .7));
+            border: 1.5px solid rgba(255, 255, 255, .25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-vm-confirm:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .btn-vm-confirm:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, .4);
+        }
+
+        .btn-vm-cancel {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, .06);
+            border: 1.5px solid rgba(255, 255, 255, .15);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, .7);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-vm-cancel:hover {
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+        }
+
+        /* ── Mobile Responsive ── */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 300;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            font-size: 22px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 150;
+        }
+
+        .sidebar-overlay.open {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                transform: translateX(-260px);
+                transition: transform 0.3s ease;
+                z-index: 200;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main {
+                margin-left: 0 !important;
+                padding: 72px 16px 24px;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .topbar h1 {
+                font-size: 20px;
+            }
+
+            .doc-table th,
+            .doc-table td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+
+            .pill {
+                font-size: 10px;
+                padding: 3px 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                    fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg></div>
+            <div>
+                <div class="brand-text">VoiceVault</div>
+                <div class="brand-sub">Client Portal</div>
+            </div>
+        </div>
+        <span class="nav-section">Menu</span>
+        <a href="/myapp/clienthome_get/" class="nav-item"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="/myapp/applock_get/" class="nav-item"><i class="fa fa-lock"></i> App Lock</a>
+        <a href="/myapp/doclock_get/" class="nav-item active"><i class="fa fa-file-shield"></i> Doc Lock</a>
+        <a href="/myapp/uploadvoice_get/" class="nav-item"><i class="fa fa-microphone"></i> Voice Files</a>
+        <a href="/myapp/client_complaint_get/" class="nav-item"><i class="fa fa-comment-alt"></i> New Complaint</a>
+        <a href="/myapp/client_view_complaints_get/" class="nav-item"><i class="fa fa-list"></i> My Complaints</a>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">{{ reg.name|first|upper }}</div>
+                <div>
+                    <div class="user-name">{{ reg.name }}</div>
+                    <div class="user-role">Client</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>Document Lock</h1>
+                <p>{{ docs|length }} document{{ docs|length|pluralize }} &mdash; {{ locked_count }} locked with voice
+                    passphrase</p>
+            </div>
+            <button class="btn-open-upload" onclick="openUploadModal()">
+                <i class="fa fa-upload"></i> Upload Document
+            </button>
+        </div>
+
+        {% for message in messages %}
+        <div
+            class="alert {% if 'successfully' in message.message or 'success' in message.tags %}alert-success{% else %}alert-warning{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+
+        <div class="info-banner">
+            <i class="fa fa-circle-info"></i>
+            <span>
+                Files uploaded here are <strong>locked by default</strong>. Downloading a locked file requires speaking
+                your
+                registered passphrase. You can freely lock or unlock files; unlocking requires voice verification.
+            </span>
+        </div>
+
+        <div class="table-card">
+            {% if docs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in docs %}
+                    <tr id="row-{{ doc.id }}">
+                        <td style="color:rgba(255,255,255,.6);">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="td-name"><span class="ftype-icon">{{ doc.file_type|lower|slice:":4" }}</span>{{
+                                doc.name }}</div>
+                        </td>
+                        <td class="td-date">{{ doc.file_type|default:"—" }}</td>
+                        <td class="td-size">{{ doc.filesize|filesizeformat }}</td>
+                        <td class="td-date">{{ doc.uploaded_at|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="status-pill {% if doc.is_locked %}locked{% else %}unlocked{% endif %}"
+                                id="pill-{{ doc.id }}">
+                                {% if doc.is_locked %}🔒 Locked{% else %}🔓 Unlocked{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                {% if doc.is_locked %}
+                                <button class="btn-act btn-download"
+                                    onclick="openVoiceModal({{ doc.id }}, 'download', '{{ doc.name|escapejs }}')">
+                                    <i class="fa fa-download"></i> Download
+                                </button>
+                                <button class="btn-act btn-lock-toggle"
+                                    onclick="openVoiceModal({{ doc.id }}, 'unlock', '{{ doc.name|escapejs }}')">
+                                    <i class="fa fa-lock-open"></i> Unlock
+                                </button>
+                                {% else %}
+                                <a class="btn-act btn-download" href="{{ doc.file.url }}" download="{{ doc.name }}">
+                                    <i class="fa fa-download"></i> Download
+                                </a>
+                                <button class="btn-act btn-lock-toggle" onclick="lockDoc({{ doc.id }})">
+                                    <i class="fa fa-lock"></i> Lock
+                                </button>
+                                {% endif %}
+                                <button class="btn-act btn-rename"
+                                    onclick="openRenameModal({{ doc.id }}, '{{ doc.name|escapejs }}')"><i
+                                        class="fa fa-pen"></i> Rename</button>
+                                <form method="post" action="/myapp/doclock_delete/{{ doc.id }}/"
+                                    onsubmit="return confirm('Delete \'{{ doc.name|escapejs }}\'? This cannot be undone.')"
+                                    style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-act btn-delete">
+                                        <i class="fa fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="ei">📂</div>
+                <p>No documents uploaded yet</p>
+                <small>Click <strong>Upload Document</strong> to secure your first file</small>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    </div>
+
+    <!-- Rename Modal -->
+    <div class="rename-overlay" id="renameOverlay" onclick="closeRenameModalBg(event)">
+        <div class="rename-modal">
+            <h3>Rename Document</h3>
+            <p>Enter a new display name for this file.</p>
+            <input type="text" class="rename-input" id="renameInput" placeholder="New file name" />
+            <div class="rename-error" id="renameError"></div>
+            <div class="modal-actions">
+                <button class="btn-vm-confirm" id="renameSaveBtn" onclick="submitRename()"><i class="fa fa-check"></i>
+                    Save</button>
+                <button class="btn-vm-cancel" onclick="closeRenameModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal">
+            <h3>Upload Document</h3>
+            <p class="modal-sub">Supported: PDF, DOCX, XLSX, images, ZIP &amp; more</p>
+            <form method="post" action="/myapp/doclock_upload_post/" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('docInput').click()"
+                    ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                    <div class="dz-icon">📄</div>
+                    <div class="dz-text"><strong>Click to browse</strong> or drag &amp; drop<br>any file from your
+                        device</div>
+                </div>
+                <input type="file" id="docInput" name="doc_file" onchange="onFileSelected(this)">
+                <div class="file-preview" id="filePreview">
+                    <span style="font-size:28px;">📄</span>
+                    <div style="flex:1;overflow:hidden;">
+                        <div class="fp-name" id="fpName">—</div>
+                        <div class="fp-size" id="fpSize">—</div>
+                    </div>
+                    <button type="button" class="btn-clear-file" onclick="clearFile()">✕</button>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                        <i class="fa fa-upload"></i> Upload &amp; Lock
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Voice Verification Modal -->
+    <div class="voice-modal-overlay" id="voiceModal">
+        <div class="voice-modal">
+            <h3 id="vmTitle">🎤 Voice Verification</h3>
+            <p class="vm-sub" id="vmSub">Speak your passphrase to proceed</p>
+
+            <div class="orb" id="orb" onclick="toggleRecording()"><svg xmlns="http://www.w3.org/2000/svg" width="32"
+                    height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg></div>
+            <div class="orb-label" id="orbLabel">Tap to start recording</div>
+            <div class="transcript" id="transcript">Your spoken phrase will appear here…</div>
+            <div class="vm-error" id="vmError"></div>
+
+            <div class="vm-actions">
+                <button class="btn-vm-confirm" id="vmConfirmBtn" disabled onclick="submitVoiceAction()">
+                    Verify &amp; Proceed
+                </button>
+                <button class="btn-vm-cancel" onclick="closeVoiceModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CSRF = '{{ csrf_token }}';
+        let vmDocId = null;
+        let vmMode = null;   // 'download' | 'unlock'
+        let vmDocName = '';
+        let recognition = null;
+        let isRecording = false;
+        let capturedPhrase = '';
+
+        /* ── Upload modal ─────────────────────────────── */
+        function openUploadModal() { document.getElementById('uploadModal').classList.add('open'); }
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('open');
+            clearFile();
+        }
+        document.getElementById('uploadModal').addEventListener('click', function (e) {
+            if (e.target === this) closeUploadModal();
+        });
+
+        function onFileSelected(input) {
+            if (input.files && input.files.length > 0) showFile(input.files[0]);
+        }
+        function showFile(f) {
+            document.getElementById('fpName').textContent = f.name;
+            document.getElementById('fpSize').textContent = formatBytes(f.size);
+            document.getElementById('filePreview').classList.add('show');
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+        function clearFile() {
+            document.getElementById('docInput').value = '';
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('dropZone').style.display = '';
+            document.getElementById('submitBtn').disabled = true;
+        }
+        function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+        function onDragLeave() { document.getElementById('dropZone').classList.remove('drag-over'); }
+        function onDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drag-over');
+            if (e.dataTransfer.files.length) {
+                const dt = new DataTransfer();
+                dt.items.add(e.dataTransfer.files[0]);
+                document.getElementById('docInput').files = dt.files;
+                showFile(e.dataTransfer.files[0]);
+            }
+        }
+        function formatBytes(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            return (b / 1048576).toFixed(2) + ' MB';
+        }
+
+        /* ── Lock without voice ───────────────────────── */
+        function lockDoc(docId) {
+            fetch(`/myapp/doclock_toggle/${docId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=lock'
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) updateRowLocked(docId, true);
+                });
+        }
+
+        function updateRowLocked(docId, locked) {
+            const pill = document.getElementById('pill-' + docId);
+            if (!pill) return;
+            if (locked) {
+                pill.className = 'status-pill locked';
+                pill.textContent = '🔒 Locked';
+            } else {
+                pill.className = 'status-pill unlocked';
+                pill.textContent = '🔓 Unlocked';
+            }
+            // Reload the row action buttons by reloading page
+            location.reload();
+        }
+
+        /* ── Voice modal ──────────────────────────────── */
+        function openVoiceModal(docId, mode, docName) {
+            vmDocId = docId;
+            vmMode = mode;
+            vmDocName = docName;
+            capturedPhrase = '';
+            document.getElementById('vmConfirmBtn').disabled = true;
+            document.getElementById('vmConfirmBtn').textContent = 'Verify & Proceed';
+            document.getElementById('transcript').textContent = 'Your spoken phrase will appear here\u2026';
+            document.getElementById('vmError').style.display = 'none';
+            setOrbState('idle');
+
+            if (mode === 'download') {
+                document.getElementById('vmTitle').textContent = '🎤 Voice-Gated Download';
+                document.getElementById('vmSub').textContent = `Speak your passphrase to download "${docName}"`;
+            } else {
+                document.getElementById('vmTitle').textContent = '🎤 Voice Unlock';
+                document.getElementById('vmSub').textContent = `Speak your passphrase to permanently unlock "${docName}"`;
+            }
+            document.getElementById('voiceModal').classList.add('open');
+        }
+
+        function closeVoiceModal() {
+            stopRecording();
+            document.getElementById('voiceModal').classList.remove('open');
+            vmDocId = null; vmMode = null;
+        }
+
+        function submitVoiceAction() {
+            if (!capturedPhrase || !vmDocId) return;
+            document.getElementById('vmConfirmBtn').disabled = true;
+            document.getElementById('vmConfirmBtn').textContent = 'Verifying…';
+
+            const endpoint = vmMode === 'unlock'
+                ? `/myapp/doclock_toggle/${vmDocId}/`
+                : `/myapp/doclock_access/${vmDocId}/`;
+
+            const body = vmMode === 'unlock'
+                ? `action=unlock&voice_phrase=${encodeURIComponent(capturedPhrase)}`
+                : `voice_phrase=${encodeURIComponent(capturedPhrase)}`;
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        closeVoiceModal();
+                        if (vmMode === 'download' && data.download_url) {
+                            // Trigger download
+                            const a = document.createElement('a');
+                            a.href = data.download_url;
+                            a.download = data.filename || vmDocName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        } else {
+                            // Unlocked — reload to refresh buttons
+                            location.reload();
+                        }
+                    } else {
+                        const errEl = document.getElementById('vmError');
+                        errEl.textContent = data.error || 'Verification failed.';
+                        errEl.style.display = 'block';
+                        document.getElementById('vmConfirmBtn').textContent = 'Verify & Proceed';
+                        document.getElementById('vmConfirmBtn').disabled = false;
+                    }
+                });
+        }
+
+        /* ── Speech Recognition ─────────────────────────── */
+        function initRecognition() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { alert('Speech recognition not supported. Use Chrome or Edge.'); return null; }
+            const r = new SR();
+            r.lang = 'en-US'; r.interimResults = true; r.maxAlternatives = 1;
+            r.onresult = function (e) {
+                let txt = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+                document.getElementById('transcript').textContent = txt;
+                if (e.results[e.results.length - 1].isFinal) {
+                    capturedPhrase = txt.trim();
+                    document.getElementById('vmConfirmBtn').disabled = false;
+                    setOrbState('done');
+                }
+            };
+            r.onerror = function () { stopRecording(); setOrbState('idle'); };
+            r.onend = function () { stopRecording(); };
+            return r;
+        }
+
+        function toggleRecording() { isRecording ? stopRecording() : startRecording(); }
+        function startRecording() {
+            recognition = initRecognition();
+            if (!recognition) return;
+            recognition.start();
+            isRecording = true;
+            setOrbState('listening');
+            document.getElementById('transcript').textContent = 'Listening\u2026 speak your passphrase.';
+            document.getElementById('vmConfirmBtn').disabled = true;
+            capturedPhrase = '';
+        }
+        function stopRecording() {
+            if (recognition) { try { recognition.stop(); } catch (e) { } }
+            isRecording = false;
+            if (!capturedPhrase) setOrbState('idle');
+        }
+        function setOrbState(state) {
+            const orb = document.getElementById('orb');
+            const label = document.getElementById('orbLabel');
+            orb.className = 'orb';
+            if (state === 'listening') {
+                orb.classList.add('listening');
+                orb.textContent = '🔴';
+                label.textContent = 'Recording\u2026 tap to stop';
+            } else if (state === 'done') {
+                orb.classList.add('done');
+                orb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                label.textContent = 'Phrase captured! Click Verify to proceed.';
+            } else {
+                orb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+                label.textContent = 'Tap to start recording';
+            }
+        }
+        document.getElementById('voiceModal').addEventListener('click', function (e) {
+            if (e.target === this) closeVoiceModal();
+        });
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-overlay').classList.toggle('open');
+        }
+
+        /* ── Rename ──────────────────────────────────── */
+        let renameDocId = null;
+        function openRenameModal(docId, currentName) {
+            renameDocId = docId;
+            document.getElementById('renameInput').value = currentName;
+            document.getElementById('renameError').style.display = 'none';
+            document.getElementById('renameOverlay').classList.add('open');
+            setTimeout(() => document.getElementById('renameInput').focus(), 100);
+        }
+        function closeRenameModal() {
+            document.getElementById('renameOverlay').classList.remove('open');
+            renameDocId = null;
+        }
+        function closeRenameModalBg(e) {
+            if (e.target === document.getElementById('renameOverlay')) closeRenameModal();
+        }
+        function submitRename() {
+            const newName = document.getElementById('renameInput').value.trim();
+            if (!newName) {
+                const err = document.getElementById('renameError');
+                err.textContent = 'Name cannot be empty.';
+                err.style.display = 'block';
+                return;
+            }
+            const btn = document.getElementById('renameSaveBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            fetch(`/myapp/doclock_rename/${renameDocId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'new_name=' + encodeURIComponent(newName)
+            })
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa fa-check"></i> Save';
+                    if (data.success) {
+                        // Update the name cell in the row
+                        const row = document.getElementById('row-' + renameDocId);
+                        if (row) {
+                            const nameDiv = row.querySelector('.td-name');
+                            if (nameDiv) {
+                                const icon = nameDiv.querySelector('.ftype-icon');
+                                nameDiv.textContent = '';
+                                if (icon) nameDiv.appendChild(icon);
+                                nameDiv.appendChild(document.createTextNode(data.new_name));
+                            }
+                        }
+                        closeRenameModal();
+                    } else {
+                        const err = document.getElementById('renameError');
+                        err.textContent = data.error || 'Rename failed.';
+                        err.style.display = 'block';
+                    }
+                });
+        }
+    </script>
+</body>
+
+</html>

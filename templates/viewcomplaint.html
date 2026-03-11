@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>VoiceVault - Complaints Management</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <!-- Google Web Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600&family=Inter:wght@700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Icon Font Stylesheet -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- DataTables CSS -->
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #0072b9;
+      --bs-primary: #0072b9;
+    }
+
+    body {
+      background: linear-gradient(135deg, rgba(0, 114, 185, 0.1) 0%, rgba(0, 90, 147, 0.1) 100%);
+      font-family: 'Heebo', sans-serif;
+    }
+
+    /* Navbar Styling */
+    .navbar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-brand h1 {
+      color: #0072b9;
+      margin: 0;
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+
+    .nav-link {
+      color: #333 !important;
+      font-weight: 500;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #0072b9 !important;
+    }
+
+    .btn-light {
+      background: #0072b9;
+      border: none;
+      color: white !important;
+    }
+
+    .btn-light:hover {
+      background: #005a93;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 114, 185, 0.4);
+    }
+
+    .dropdown-item:hover {
+      background-color: rgba(0, 114, 185, 0.1);
+      color: #0072b9;
+    }
+
+    
+    /* Dropdown on Hover */
+    .nav-item.dropdown:hover .dropdown-menu {
+      display: block;
+    }
+
+    .dropdown-menu {
+      margin-top: 0;
+    }
+
+    .table thead th {
+      background: #0072b9;
+      color: white;
+      border: none;
+    }
+
+    h3 {
+      color: #0072b9;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #0072b9;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: #005a93;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      border: none;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar Start -->
+  <nav class="navbar navbar-expand-lg navbar-light px-4 px-lg-5 py-3">
+    <a href="/myapp/adminhome_get/" class="navbar-brand p-0">
+      <h1 class="m-0"><i class="fas fa-microphone-alt me-2"></i>VoiceVault</h1>
+      <!-- <img src="img/logo.png" alt="Logo"> -->
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+      <span class="fa fa-bars"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+      <div class="navbar-nav ms-auto py-0">
+        <a href="/myapp/adminhome_get/" class="nav-item nav-link">Dashboard</a>
+        <a href="/myapp/viewuser_get/" class="nav-item nav-link">Users</a>
+        <a href="/myapp/viewcom_get/" class="nav-item nav-link active">Complaints</a>
+        <div class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Settings</a>
+          <div class="dropdown-menu m-0">
+            <a href="/myapp/adminchgpass_get/" class="dropdown-item">Change Password</a>
+            <!--<a href="#" class="dropdown-item">System Settings</a>
+            <a href="#" class="dropdown-item">Security Logs</a>
+            <a href="#" class="dropdown-item">Reports</a>
+            -->
+          </div>
+        </div>
+      </div>
+      <a href="/myapp/logout_get/" class="btn btn-light rounded-pill text-primary py-2 px-4 ms-lg-5"><i
+          class="fas fa-sign-out-alt me-2"></i>Logout</a>
+    </div>
+  </nav>
+  <!-- Navbar End -->
+
+  <div class="container mt-5">
+    <h3 class="mb-4">My Sent Complaints</h3>
+
+    <!-- Date Filter Inputs -->
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="fromDate" class="form-label">From Date</label>
+        <input type="date" id="fromDate" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label for="toDate" class="form-label">To Date</label>
+        <input type="date" id="toDate" class="form-control">
+      </div>
+    </div>
+
+    <!-- Complaints Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover" id="complaintTable">
+        <thead class="table-light">
+          <tr>
+            <th>Sl. No.</th>
+            <th>Date</th>
+            <th>Username</th>
+            <th>Complaint</th>
+            <th>Reply</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Sample Data Rows -->
+          {% for i in data %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ i.date }}</td>
+            <td>{{ i.REGISTRATION.name }}</td>
+            <td>{{ i.complaint }}</td>
+            <td>{{ i.reply }}</td>
+            <td>{{ i.status }}</td>
+            <td>{% if i.status == 'Pending' %}
+              <a href="/myapp/sentrep_get/{{ i.id }}" class="btn btn-danger">Reply</a>
+              {% else %}
+              {{ i.status }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          <!-- Add more rows as needed -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+  <script>
+    // Extend DataTables with custom date filtering
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+      const min = document.getElementById('fromDate').value;
+      const max = document.getElementById('toDate').value;
+      const dateStr = data[1]; // Date is column index 1
+      const date = new Date(dateStr);
+
+      const minDate = min ? new Date(min) : null;
+      const maxDate = max ? new Date(max) : null;
+
+      if ((!minDate || date >= minDate) && (!maxDate || date <= maxDate)) {
+        return true;
+      }
+      return false;
+    });
+
+    // Initialize DataTable and bind filter events
+    $(document).ready(function () {
+      const table = $('#complaintTable').DataTable({
+        pageLength: 5
+      });
+
+      $('#fromDate, #toDate').on('change', function () {
+        table.draw();
+      });
+    });
+  </script>
+</body>
+
+</html>

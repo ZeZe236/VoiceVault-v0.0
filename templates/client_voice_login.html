@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - Voice Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #bgVideo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            object-fit: cover;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a0f;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.4), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.4), transparent 50%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.25));
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(255, 255, 255, 0.015) 10px, rgba(255, 255, 255, 0.015) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        .glass-box {
+            position: relative;
+            width: min(420px, calc(100vw - 24px));
+            padding: 45px 40px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(255, 255, 255, 0.1),
+                inset 0 2px 2px rgba(255, 255, 255, 0.2),
+                inset 0 -2px 2px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            text-align: center;
+            z-index: 1;
+            animation: fadeInUp 0.8s ease;
+            overflow: hidden;
+        }
+
+        .glass-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: rotate(0deg);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: rotate(180deg);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 35px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .glass-box input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-box input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .glass-box input[type="text"]:focus {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.35);
+        }
+
+        /* Voice Orb */
+        .voice-orb-container {
+            margin: 10px 0 8px;
+        }
+
+        .voice-orb {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .voice-orb::before,
+        .voice-orb::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(102, 126, 234, 0.4);
+        }
+
+        .voice-orb::before {
+            width: 96px;
+            height: 96px;
+        }
+
+        .voice-orb::after {
+            width: 112px;
+            height: 112px;
+            border-color: rgba(118, 75, 162, 0.3);
+        }
+
+        .voice-orb.listening {
+            background: linear-gradient(135deg, rgba(234, 82, 82, 0.7), rgba(200, 50, 120, 0.7));
+            border-color: rgba(255, 100, 100, 0.5);
+            box-shadow: 0 0 24px rgba(234, 82, 82, 0.5);
+            animation: orbPulse 1.2s ease-in-out infinite;
+        }
+
+        .voice-orb.listening::before {
+            animation: ripple 1.5s ease-out infinite;
+        }
+
+        .voice-orb.listening::after {
+            animation: ripple 1.5s ease-out 0.5s infinite;
+        }
+
+        @keyframes orbPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .voice-orb.done {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.6), rgba(34, 197, 94, 0.6));
+            border-color: rgba(74, 222, 128, 0.5);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+        }
+
+        .orb-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .transcript-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+            border: 1px dashed rgba(255, 255, 255, 0.18);
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 22px;
+            margin-bottom: 6px;
+        }
+
+        .waveform span {
+            display: inline-block;
+            width: 3px;
+            height: 4px;
+            background: rgba(102, 126, 234, 0.7);
+            border-radius: 3px;
+        }
+
+        .waveform.active span {
+            animation: wave 0.7s ease-in-out infinite;
+        }
+
+        .waveform.active span:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .waveform.active span:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .waveform.active span:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .waveform.active span:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        .waveform.active span:nth-child(6) {
+            animation-delay: 0.3s;
+        }
+
+        .waveform.active span:nth-child(7) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                height: 4px;
+            }
+
+            50% {
+                height: 20px;
+            }
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .links {
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .links a {
+            color: rgba(200, 180, 255, 0.8);
+            text-decoration: none;
+            font-size: 12px;
+            transition: color 0.2s;
+        }
+
+        .links a:hover {
+            color: #fff;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            min-width: 280px;
+            max-width: calc(100vw - 40px);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+            background: rgba(20, 5, 5, 0.88);
+            border: 1px solid rgba(248, 113, 113, 0.5);
+            color: #fca5a5;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+            animation: alertSlideDown 0.3s ease;
+            white-space: nowrap;
+        }
+
+        @keyframes alertSlideDown {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .glass-box {
+                padding: 28px 18px 22px;
+                border-radius: 18px;
+                max-height: calc(100dvh - 16px);
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+                margin-bottom: 20px;
+            }
+
+            .logo-icon {
+                width: 48px;
+                height: 48px;
+                margin-bottom: 14px;
+            }
+
+            .voice-orb {
+                width: 64px;
+                height: 64px;
+            }
+
+            .voice-orb::before {
+                width: 80px;
+                height: 80px;
+            }
+
+            .voice-orb::after {
+                width: 94px;
+                height: 94px;
+            }
+
+            .voice-orb-container {
+                margin: 6px 0 4px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Video Background -->
+    <video autoplay muted loop id="bgVideo">
+        <source src="/static/video/login-bg.mp4" type="video/mp4">
+    </video>
+
+    <div class="glass-box">
+        <div class="logo-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+            </svg></div>
+        <h2>VoiceVault</h2>
+        <p class="subtitle">Speak to Authenticate</p>
+
+        {% for message in messages %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %}
+
+        <form action="/myapp/client_voice_login_post/" method="post" id="loginForm">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Enter your username" required autocomplete="username">
+
+            <div class="voice-orb-container">
+                <div class="voice-orb" id="voiceOrb" onclick="toggleRecording()" title="Click to record"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="23" />
+                        <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg></div>
+                <div class="orb-label" id="orbLabel">Tap the microphone to begin</div>
+                <div class="waveform" id="waveform">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="transcript-box" id="transcriptBox">Your spoken phrase will appear here&hellip;</div>
+            </div>
+
+            <input type="hidden" name="voice_phrase" id="voicePhraseInput">
+
+            <button type="submit" class="btn-login" id="submitBtn" disabled>
+                <span>Verify Voice &amp; Login</span>
+            </button>
+        </form>
+
+        <div class="links">
+            <a href="/myapp/login_get/">Admin Login</a>
+            <a href="/myapp/client_register_get/">Create Account</a>
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let isRecording = false;
+
+        function initRecognition() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {
+                alert('Voice recognition not supported. Please use Chrome or Edge.');
+                return null;
+            }
+            const r = new SR();
+            r.lang = 'en-US';
+            r.interimResults = true;
+            r.maxAlternatives = 1;
+
+            r.onresult = function (e) {
+                let transcript = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    transcript += e.results[i][0].transcript;
+                }
+                document.getElementById('transcriptBox').textContent = transcript;
+                if (e.results[e.results.length - 1].isFinal) {
+                    const finalText = transcript.trim().toLowerCase();
+                    document.getElementById('voicePhraseInput').value = finalText;
+                    document.getElementById('submitBtn').disabled = false;
+                    setOrbState('done');
+                }
+            };
+
+            r.onerror = function (e) {
+                stopRecording();
+                document.getElementById('transcriptBox').textContent = 'Error: ' + e.error + '. Try again.';
+                setOrbState('idle');
+            };
+
+            r.onend = function () { stopRecording(); };
+            return r;
+        }
+
+        function toggleRecording() {
+            if (isRecording) { stopRecording(); } else { startRecording(); }
+        }
+
+        function startRecording() {
+            recognition = initRecognition();
+            if (!recognition) return;
+            try {
+                recognition.start();
+                isRecording = true;
+                setOrbState('listening');
+                document.getElementById('transcriptBox').textContent = 'Listening\u2026 speak your passphrase now.';
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('voicePhraseInput').value = '';
+            } catch (e) { console.error(e); }
+        }
+
+        function stopRecording() {
+            if (recognition) { try { recognition.stop(); } catch (e) { } }
+            isRecording = false;
+            document.getElementById('waveform').classList.remove('active');
+            if (!document.getElementById('voicePhraseInput').value) { setOrbState('idle'); }
+        }
+
+        function setOrbState(state) {
+            const orb = document.getElementById('voiceOrb');
+            const label = document.getElementById('orbLabel');
+            const wave = document.getElementById('waveform');
+            orb.className = 'voice-orb';
+            if (state === 'listening') {
+                orb.classList.add('listening');
+                orb.textContent = '\uD83D\uDD34';
+                label.textContent = 'Recording\u2026 tap to stop';
+                wave.classList.add('active');
+            } else if (state === 'done') {
+                orb.classList.add('done');
+                orb.textContent = '\u2705';
+                label.textContent = 'Phrase captured! Click Login to proceed.';
+                wave.classList.remove('active');
+            } else {
+                orb.textContent = '\uD83C\uDFA4';
+                label.textContent = 'Tap the microphone to begin';
+                wave.classList.remove('active');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            if (!document.getElementById('voicePhraseInput').value) {
+                e.preventDefault();
+                alert('Please record your voice phrase first.');
+            }
+        });
+    </script>
+</body>
+
+</html>

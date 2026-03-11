@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VoiceVault - Voice Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5) 0%, rgba(118, 75, 162, 0.5) 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.4), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.4), transparent 50%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.25));
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent, transparent 10px,
+                    rgba(255, 255, 255, 0.015) 10px, rgba(255, 255, 255, 0.015) 11px);
+            animation: scanlines 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes scanlines {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(100px);
+            }
+        }
+
+        .glass-box {
+            position: relative;
+            width: 420px;
+            padding: 50px 42px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.2);
+            color: #fff;
+            text-align: center;
+            z-index: 1;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 22px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 32px;
+        }
+
+        .glass-box input {
+            width: 100%;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-box input::placeholder {
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .glass-box input:focus {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* File upload zone */
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            padding: 32px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 24px 0 16px;
+            background: rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: rgba(102, 126, 234, 0.7);
+            background: rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-zone .zone-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone .zone-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.6;
+        }
+
+        .upload-zone .zone-text strong {
+            color: rgba(167, 139, 250, 0.9);
+        }
+
+        #voiceFileInput {
+            display: none;
+        }
+
+        /* File preview */
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .file-preview.show {
+            display: flex;
+        }
+
+        .file-preview .fp-icon {
+            font-size: 24px;
+        }
+
+        .file-preview .fp-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .file-preview .fp-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #86efac;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-preview .fp-size {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .file-preview .fp-clear {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+            padding: 2px 6px;
+        }
+
+        .file-preview .fp-clear:hover {
+            color: #f87171;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 14px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .links {
+            margin-top: 22px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .links a {
+            color: rgba(200, 180, 255, 0.85);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .links a:hover {
+            color: #fff;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            text-align: left;
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-box">
+        <div class="logo-icon">🎙️</div>
+        <h2>VoiceVault</h2>
+        <p class="subtitle">Speak to Authenticate</p>
+
+        {% for message in messages %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %}
+
+        <form action="/myapp/voice_login/" method="post" enctype="multipart/form-data" id="loginForm">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Enter your username" required autocomplete="username">
+
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('voiceFileInput').click()"
+                ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                <div class="zone-icon">&#127925;</div>
+                <div class="zone-text"><strong>Click to browse</strong> or drag &amp; drop<br>your voice file here (MP3,
+                    WAV, OGG, M4A)</div>
+            </div>
+            <input type="file" id="voiceFileInput" name="voice_file" accept=".mp3,.wav,.ogg,.m4a,.flac,.webm,audio/*"
+                onchange="onFileSelected(this)">
+
+            <div class="file-preview" id="filePreview">
+                <span class="fp-icon">&#127925;</span>
+                <div class="fp-info">
+                    <div class="fp-name" id="fpName">-</div>
+                    <div class="fp-size" id="fpSize">-</div>
+                </div>
+                <button type="button" class="fp-clear" onclick="clearFile()">&#x2715;</button>
+            </div>
+
+            <button type="submit" class="btn-login" id="submitBtn" disabled>
+                <span>Verify Voice &amp; Login</span>
+            </button>
+        </form>
+
+        <div class="links">
+            <a href="/myapp/login_get/">Admin Login</a>
+            <a href="/myapp/client_register_get/">Create Account</a>
+        </div>
+    </div>
+
+    <script>
+        function onFileSelected(input) {
+            if (input.files && input.files[0]) showPreview(input.files[0]);
+        }
+
+        function showPreview(file) {
+            document.getElementById('fpName').textContent = file.name;
+            document.getElementById('fpSize').textContent = formatBytes(file.size);
+            document.getElementById('filePreview').classList.add('show');
+            document.getElementById('uploadZone').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function clearFile() {
+            document.getElementById('voiceFileInput').value = '';
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('uploadZone').style.display = '';
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        function onDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.add('drag-over');
+        }
+
+        function onDragLeave(e) {
+            document.getElementById('uploadZone').classList.remove('drag-over');
+        }
+
+        function onDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                const dt = new DataTransfer();
+                dt.items.add(files[0]);
+                document.getElementById('voiceFileInput').files = dt.files;
+                showPreview(files[0]);
+            }
+        }
+
+        function formatBytes(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            return (b / 1048576).toFixed(2) + ' MB';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            if (!document.getElementById('voiceFileInput').files.length) {
+                e.preventDefault();
+                alert('Please select a voice file first.');
+            }
+        });
+    </script>
+</body>
+
+</html>
